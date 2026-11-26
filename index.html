@@ -503,11 +503,222 @@
     // CONFIGURAÇÃO DO SUPABASE
     // Cole sua Project URL e Anon Public Key abaixo
     // ==========================================
-    const DEFAULT_SUPABASE_URL = 'https://sufsfcryoohwqfoucwqh.supabase.co';
-    const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
+    const DEFAULT_SUPABASE_URL = '';
+    const DEFAULT_SUPABASE_ANON_KEY = '';
 
     const LS_URL_KEY = 'cc_supabase_url';
-// ... existing code ... -->
+    const LS_ANON_KEY = 'cc_supabase_anon_key';
+
+    let sb = null;
+    let realtimeChannel = null;
+
+    // ==================== CONSTANTES DE DOMÍNIO ====================
+    const DEPT_LABELS = {
+      fiscal: 'Fiscal',
+      contabil: 'Contábil',
+      trabalhista: 'Trabalhista'
+    };
+
+    const STATUS_CONFIG = {
+      pendente: {
+        label: 'Pendente',
+        badge: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/70',
+        dot: 'bg-slate-400',
+        resolved: false
+      },
+      aguardando_cliente: {
+        label: 'Aguardando Cliente',
+        badge: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100',
+        dot: 'bg-amber-500',
+        resolved: false
+      },
+      em_andamento: {
+        label: 'Em Andamento',
+        badge: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+        dot: 'bg-blue-500',
+        resolved: false
+      },
+      concluido: {
+        label: 'Concluído',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+        dot: 'bg-emerald-500',
+        resolved: true
+      },
+      sem_movimento: {
+        label: 'Sem Movimento',
+        badge: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
+        dot: 'bg-purple-500',
+        resolved: true
+      }
+    };
+
+    const DEFAULT_OBLIGATIONS = [
+      { nome: 'Importação XML Entrada', departamento: 'fiscal', dia_vencimento: 10 },
+      { nome: 'Importação XML Saída', departamento: 'fiscal', dia_vencimento: 10 },
+      { nome: 'Importação XML Serviço', departamento: 'fiscal', dia_vencimento: 12 },
+      { nome: 'Envio Guia DAS / Impostos', departamento: 'fiscal', dia_vencimento: 20 },
+      { nome: 'Conciliação Bancária', departamento: 'contabil', dia_vencimento: 15 },
+      { nome: 'Fechamento Balancete', departamento: 'contabil', dia_vencimento: 25 },
+      { nome: 'Folha de Pagamento', departamento: 'trabalhista', dia_vencimento: 5 },
+      { nome: 'Envio FGTS / INSS', departamento: 'trabalhista', dia_vencimento: 20 }
+    ];
+
+    // ==================== ESTADO GLOBAL ====================
+    function getCurrentYearMonth() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    const state = {
+      user: null,
+      perfil: null,
+      escritorio: null,
+      currentPage: 'dashboard',
+      competencia: getCurrentYearMonth(),
+      competenciasDisponiveis: [getCurrentYearMonth()],
+      clientes: [],
+      obrigacoes: [],
+      matriz: [], // { cliente_id, obrigacao_id }
+      entregas: [], // entregas da competência atual
+      filters: {
+        search: '',
+        regime: 'todos',
+        onlyPending: false,
+        clientSearch: '',
+        clientRegime: 'todos'
+      },
+      activeStatusCtx: null, // { clienteId, obrigacaoId, selectedStatus }
+      activeWhatsAppClient: null
+    };
+
+    // ==================== INICIALIZAÇÃO SUPABASE ====================
+    function getSupabaseCredentials() {
+      const url = (DEFAULT_SUPABASE_URL || localStorage.getItem(LS_URL_KEY) || '').trim();
+      const key = (DEFAULT_SUPABASE_ANON_KEY || localStorage.getItem(LS_ANON_KEY) || '').trim();
+      return { url, key };
+    }
+
+    function initSupabaseClient() {
+      const { url, key } = getSupabaseCredentials();
+      const badge = document.getElementById('supabase-status-badge');
+
+      if (!url || !key) {
+        sb = null;
+        if (badge) {
+          badge.textContent = 'Conexão não configurada';
+          badge.className = 'text-[11px] font-semibold text-amber-600';
+        }
+        return false;
+      }
+
+      try {
+        sb = window.supabase.createClient(url, key);
+        if (badge) {
+          badge.textContent = 'Supabase pronto';
+          badge.className = 'text-[11px] font-semibold text-emerald-600';
+        }
+        return true;
+      } catch (err) {
+        console.error('Erro ao inicializar Supabase:', err);
+        sb = null;
+        if (badge) {
+          badge.textContent = 'Credenciais inválidas';
+          badge.className = 'text-[11px] font-semibold text-red-600';
+        }
+        return false;
+      }
+    }
+
+    function openConfigModal() {
+      const { url, key } = getSupabaseCredentials();
+      document.getElementById('cfg-url').value = url;
+      document.getElementById('cfg-key').value = key;
+      openModal('config-modal');
+    }
+
+    async function saveSupabaseConfig() {
+      const url = document.getElementById('cfg-url').value.trim();
+      const key = document.getElementById('cfg-key').value.trim();
+      if (!url || !key) {
+        showToast('Preencha a URL e a Anon Key.');
+        return;
+      }
+      localStorage.setItem(LS_URL_KEY, url);
+      localStorage.setItem(LS_ANON_KEY, key);
+      closeModal('config-modal');
+      if (initSupabaseClient()) {
+        showToast('Conexão Supabase salva!');
+        await checkSession();
+      }
+    }
+
+    // ==================== AUTENTICAÇÃO ====================
+    async function checkSession() {
+      if (!sb) {
+        showLoginScreen();
+        return;
+      }
+
+      try {
+        const { data: { session }, error } = await sb.auth.getSession();
+        if (error) throw error;
+        if (session && session.user) {
+          await initUserSession(session.user);
+        } else {
+          showLoginScreen();
+        }
+      } catch (err) {
+        console.error('Erro ao verificar sessão:', err);
+        showLoginScreen();
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const errBox = document.getElementById('login-error');
+      errBox.classList.add('hidden');
+
+      if (!sb) {
+        errBox.textContent = 'Configure a conexão do Supabase antes de entrar.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login-submit');
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await initUserSession(data.user);
+      } catch (err) {
+        errBox.textContent = err.message === 'Invalid login credentials'
+          ? 'E-mail ou senha incorretos.'
+          : 'Erro ao entrar: ' + err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }
+
+    async function initUserSession(user) {
+      try {
+        state.user = user;
+
+        const { data: perfil, error: perfilErr } = await sb
+          .from('perfis')
+          .select('id, escritorio_id, nome, cargo')
+          .eq('id', user.id)
+          .single();
+
+        if (perfilErr || !perfil) {
+          throw new Error('Perfil não encontrado na tabela "perfis". Verifique a Etapa 3 do SQL.');
+        }
+
         state.perfil = perfil;
 
         const { data: esc } = await sb
@@ -526,7 +737,174 @@
         await carregarDados(false);
         setupRealtime();
       } catch (err) {
-// ... existing code ... -->
+        console.error(err);
+        const errBox = document.getElementById('login-error');
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+        showLoginScreen();
+      }
+    }
+
+    async function handleLogout() {
+      if (realtimeChannel && sb) {
+        await sb.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
+      if (sb) await sb.auth.signOut();
+      state.user = null;
+      state.perfil = null;
+      state.escritorio = null;
+      showLoginScreen();
+    }
+
+    function showLoginScreen() {
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('flex');
+    }
+
+    function showAppScreen() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('flex');
+    }
+
+    // ==================== CARREGAMENTO DE DADOS E REALTIME ====================
+    async function carregarDados(showFeedback = false) {
+      if (!sb || !state.perfil) return;
+
+      try {
+        const [resCli, resOb, resMat, resComps] = await Promise.all([
+          sb.from('clientes').select('*').order('razao_social', { ascending: true }),
+          sb.from('obrigacoes').select('*').order('dia_vencimento', { ascending: true }).order('nome', { ascending: true }),
+          sb.from('cliente_obrigacoes').select('cliente_id, obrigacao_id'),
+          sb.from('entregas_mensais').select('competencia')
+        ]);
+
+        if (resCli.error) throw resCli.error;
+        if (resOb.error) throw resOb.error;
+        if (resMat.error) throw resMat.error;
+        if (resComps.error) throw resComps.error;
+
+        state.clientes = resCli.data || [];
+        state.obrigacoes = resOb.data || [];
+        state.matriz = resMat.data || [];
+
+        const compSet = new Set((resComps.data || []).map(r => r.competencia));
+        compSet.add(state.competencia);
+        state.competenciasDisponiveis = Array.from(compSet).sort().reverse();
+
+        await carregarEntregasCompetencia();
+        renderAll();
+
+        if (showFeedback) showToast('Dados sincronizados!');
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        showToast('Erro ao sincronizar: ' + err.message);
+      }
+    }
+
+    async function carregarEntregasCompetencia() {
+      if (!sb) return;
+      const { data, error } = await sb
+        .from('entregas_mensais')
+        .select('*')
+        .eq('competencia', state.competencia);
+
+      if (error) throw error;
+      state.entregas = data || [];
+    }
+
+    function setupRealtime() {
+      if (!sb || !state.perfil) return;
+      if (realtimeChannel) {
+        sb.removeChannel(realtimeChannel);
+      }
+
+      const indicator = document.getElementById('realtime-indicator');
+      realtimeChannel = sb
+        .channel('entregas-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'entregas_mensais',
+            filter: `escritorio_id=eq.${state.perfil.escritorio_id}`
+          },
+          async (payload) => {
+            const record = payload.new || payload.old;
+            if (record && record.competencia === state.competencia) {
+              await carregarEntregasCompetencia();
+              renderAll();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (!indicator) return;
+          if (status === 'SUBSCRIBED') {
+            indicator.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+            indicator.title = 'Sincronização em tempo real ativa';
+          } else {
+            indicator.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+            indicator.title = 'Status Realtime: ' + status;
+          }
+        });
+    }
+
+    // ==================== NAVEGAÇÃO E RENDER PRINCIPAL ====================
+    function navigate(page) {
+      state.currentPage = page;
+      closeMobileSidebar();
+      renderAll();
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      } else {
+        closeMobileSidebar();
+      }
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+
+    function updateNavStyles() {
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const isActive = btn.id === `nav-${state.currentPage}`;
+        btn.className = isActive
+          ? 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 text-white transition-colors cursor-pointer'
+          : 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer';
+      });
+    }
+
+    function renderCompetenciaSelect() {
+      const select = document.getElementById('competencia-select');
+      if (!select) return;
+      select.innerHTML = state.competenciasDisponiveis.map(comp => `
+        <option value="${comp}" ${comp === state.competencia ? 'selected' : ''}>${formatCompetencia(comp)}</option>
+      `).join('');
+    }
+
+    async function changeCompetencia(comp) {
+      state.competencia = comp;
+      try {
+        await carregarEntregasCompetencia();
+        renderAll();
+      } catch (err) {
+        showToast('Erro ao carregar competência: ' + err.message);
+      }
+    }
+
     function renderAll() {
       updateNavStyles();
       renderCompetenciaSelect();
@@ -586,8 +964,480 @@
       document.title = officeName ? `${officeName} – Controle Contábil` : 'Controle Contábil – Gestão de Rotinas';
     }
 
+    // ==================== HELPERS DE REGRAS E DATAS ====================
     function getEntrega(clienteId, obrigacaoId) {
-// ... existing code ... -->
+      return state.entregas.find(e => e.cliente_id === clienteId && e.obrigacao_id === obrigacaoId);
+    }
+
+    function clienteTemObrigacao(clienteId, obrigacaoId) {
+      return state.matriz.some(m => m.cliente_id === clienteId && m.obrigacao_id === obrigacaoId);
+    }
+
+    function getDueDateForObligation(competencia, diaVencimento) {
+      const [anoStr, mesStr] = competencia.split('-');
+      const ano = parseInt(anoStr, 10);
+      const mes = parseInt(mesStr, 10); // 1..12
+      // Último dia do mês
+      const lastDay = new Date(ano, mes, 0).getDate();
+      const dia = Math.min(Math.max(1, parseInt(diaVencimento || 20, 10)), lastDay);
+      return new Date(ano, mes - 1, dia, 23, 59, 59);
+    }
+
+    function getDueStatus(competencia, diaVencimento, statusKey) {
+      if (STATUS_CONFIG[statusKey]?.resolved) return { state: 'ok', diffDays: 999 };
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = getDueDateForObligation(competencia, diaVencimento);
+      due.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) return { state: 'overdue', diffDays, due };
+      if (diffDays <= 3) return { state: 'soon', diffDays, due };
+      return { state: 'normal', diffDays, due };
+    }
+
+    function formatCompetencia(comp) {
+      if (!comp || !comp.includes('-')) return comp || '—';
+      const [ano, mes] = comp.split('-');
+      return `${mes}/${ano}`;
+    }
+
+    function formatDateTimeBR(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ==================== 1. DASHBOARD (VISÃO GERAL) ====================
+    function renderDashboard() {
+      const activeClients = state.clientes.filter(c => c.ativo);
+      const activeObligations = state.obrigacoes.filter(o => o.ativa);
+
+      let totalTasks = 0;
+      let resolvedTasks = 0;
+      let waitingClientTasks = 0;
+      let overdueTasks = 0;
+
+      const deptStats = {
+        fiscal: { total: 0, resolved: 0 },
+        contabil: { total: 0, resolved: 0 },
+        trabalhista: { total: 0, resolved: 0 }
+      };
+
+      const waitingList = [];
+      const urgentList = [];
+
+      activeClients.forEach(client => {
+        activeObligations.forEach(ob => {
+          if (!clienteTemObrigacao(client.id, ob.id)) return;
+          totalTasks++;
+          deptStats[ob.departamento].total++;
+
+          const entrega = getEntrega(client.id, ob.id);
+          const st = entrega ? entrega.status : 'pendente';
+
+          if (STATUS_CONFIG[st]?.resolved) {
+            resolvedTasks++;
+            deptStats[ob.departamento].resolved++;
+          } else {
+            if (st === 'aguardando_cliente') {
+              waitingClientTasks++;
+              waitingList.push({ client, ob, obs: entrega?.observacao || '' });
+            }
+            const dueInfo = getDueStatus(state.competencia, ob.dia_vencimento, st);
+            if (dueInfo.state === 'overdue') {
+              overdueTasks++;
+              urgentList.push({ client, ob, st, dueInfo });
+            } else if (dueInfo.state === 'soon') {
+              urgentList.push({ client, ob, st, dueInfo });
+            }
+          }
+        });
+      });
+
+      const pctGeral = totalTasks > 0 ? Math.round((resolvedTasks / totalTasks) * 100) : 0;
+      urgentList.sort((a, b) => a.dueInfo.diffDays - b.dueInfo.diffDays);
+
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Visão Geral · ${formatCompetencia(state.competencia)}</h2>
+              <p class="text-sm text-slate-500">Acompanhamento em tempo real das rotinas do escritório.</p>
+            </div>
+            ${state.obrigacoes.length === 0 ? `
+              <button onclick="carregarObrigacoesPadrao()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer">
+                Carregar Obrigações Padrão
+              </button>
+            ` : ''}
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Progresso Geral</p>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-3xl font-bold text-slate-900">${pctGeral}%</span>
+                <span class="text-xs font-medium text-slate-500">${resolvedTasks}/${totalTasks} rotinas</span>
+              </div>
+              <div class="mt-3 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-slate-900 rounded-full transition-all duration-300" style="width: ${pctGeral}%"></div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Clientes Ativos</p>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-3xl font-bold text-slate-900">${activeClients.length}</span>
+                <span class="text-xs font-medium text-slate-500">${state.clientes.length} cadastrados</span>
+              </div>
+              <p class="mt-3 text-xs text-slate-400">Empresas monitoradas nesta competência</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-amber-200/80 p-5">
+              <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider">Aguardando Cliente</p>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-3xl font-bold text-amber-700">${waitingClientTasks}</span>
+                <span class="text-xs font-medium text-amber-600">itens travados</span>
+              </div>
+              <p class="mt-3 text-xs text-amber-600/80">Cobrança pendente via WhatsApp</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-red-200/80 p-5">
+              <p class="text-xs font-semibold text-red-700 uppercase tracking-wider">Em Atraso</p>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-3xl font-bold text-red-600">${overdueTasks}</span>
+                <span class="text-xs font-medium text-red-500">vencidas</span>
+              </div>
+              <p class="mt-3 text-xs text-red-500/80">Obrigações após o dia de vencimento</p>
+            </div>
+          </div>
+
+          <!-- Progresso por Departamento -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${['fiscal', 'contabil', 'trabalhista'].map(dept => {
+              const s = deptStats[dept];
+              const pct = s.total > 0 ? Math.round((s.resolved / s.total) * 100) : 0;
+              return `
+                <div onclick="navigate('${dept}')" class="bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-xs transition cursor-pointer">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-900">${DEPT_LABELS[dept]}</h3>
+                    <span class="text-sm font-bold text-slate-900">${pct}%</span>
+                  </div>
+                  <div class="mt-3 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                  </div>
+                  <p class="mt-2.5 text-xs text-slate-500">${s.resolved} de ${s.total} entregas concluídas</p>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Painéis de Ação Rápida -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Painel Aguardando Cliente -->
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900">Aguardando Cliente</h3>
+                  <p class="text-xs text-slate-500">Itens parados esperando retorno ou documentos.</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">${waitingList.length}</span>
+              </div>
+              <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                ${waitingList.length === 0 ? `
+                  <p class="p-6 text-xs text-slate-400 text-center">Nenhum cliente travado no momento.</p>
+                ` : waitingList.map(item => `
+                  <div class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/70">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-800 truncate">${escapeHtml(item.client.razao_social)}</p>
+                      <p class="text-xs text-slate-500 truncate">${escapeHtml(item.ob.nome)} ${item.obs ? `· <span class="text-amber-700">${escapeHtml(item.obs)}</span>` : ''}</p>
+                    </div>
+                    <button onclick="openWhatsAppModal('${item.client.id}')" class="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold hover:bg-emerald-100 cursor-pointer">
+                      Cobrar
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Painel Vencidas / Próximas -->
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900">Vencidas e Próximas (3 dias)</h3>
+                  <p class="text-xs text-slate-500">Prioridades de entrega na competência atual.</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-700 border border-red-200">${urgentList.length}</span>
+              </div>
+              <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                ${urgentList.length === 0 ? `
+                  <p class="p-6 text-xs text-slate-400 text-center">Nenhuma obrigação vencida ou crítica nos próximos 3 dias.</p>
+                ` : urgentList.slice(0, 20).map(item => {
+                  const isOverdue = item.dueInfo.state === 'overdue';
+                  const badgeTxt = isOverdue
+                    ? `Atrasada (${Math.abs(item.dueInfo.diffDays)}d)`
+                    : (item.dueInfo.diffDays === 0 ? 'Vence hoje' : `Vence em ${item.dueInfo.diffDays}d`);
+                  return `
+                    <div onclick="openStatusModal('${item.client.id}', '${item.ob.id}')" class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-800 truncate">${escapeHtml(item.client.razao_social)}</p>
+                        <p class="text-xs text-slate-500 truncate">${escapeHtml(item.ob.nome)} · Dia ${String(item.ob.dia_vencimento).padStart(2, '0')}</p>
+                      </div>
+                      <span class="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
+                        ${badgeTxt}
+                      </span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== 2. ROTINAS POR DEPARTAMENTO ====================
+    function renderRotinasDept(dept) {
+      const obsDept = state.obrigacoes.filter(o => o.departamento === dept && o.ativa);
+      const term = state.filters.search.toLowerCase();
+
+      const filteredClients = state.clientes.filter(c => {
+        if (!c.ativo) return false;
+        if (state.filters.regime !== 'todos' && c.regime !== state.filters.regime) return false;
+        if (term && !c.razao_social.toLowerCase().includes(term) && !(c.cnpj || '').toLowerCase().includes(term)) return false;
+
+        if (state.filters.onlyPending) {
+          const hasPending = obsDept.some(ob => {
+            if (!clienteTemObrigacao(c.id, ob.id)) return false;
+            const ent = getEntrega(c.id, ob.id);
+            const st = ent ? ent.status : 'pendente';
+            return !STATUS_CONFIG[st]?.resolved;
+          });
+          if (!hasPending) return false;
+        }
+        return true;
+      });
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Rotinas · ${DEPT_LABELS[dept]}</h2>
+              <p class="text-sm text-slate-500">Clique em qualquer etiqueta para atualizar o status e registrar observações.</p>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+            <input type="text" value="${escapeHtml(state.filters.search)}" oninput="state.filters.search = this.value; renderAll();"
+              placeholder="Buscar cliente ou CNPJ..."
+              class="flex-1 min-w-[200px] px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+
+            <select onchange="state.filters.regime = this.value; renderAll();" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="todos" ${state.filters.regime === 'todos' ? 'selected' : ''}>Todos os regimes</option>
+              <option value="Simples Nacional" ${state.filters.regime === 'Simples Nacional' ? 'selected' : ''}>Simples Nacional</option>
+              <option value="Lucro Presumido" ${state.filters.regime === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
+              <option value="Lucro Real" ${state.filters.regime === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+            </select>
+
+            <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none px-2">
+              <input type="checkbox" ${state.filters.onlyPending ? 'checked' : ''} onchange="state.filters.onlyPending = this.checked; renderAll();" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900">
+              Apenas com pendências
+            </label>
+          </div>
+
+          <!-- Tabela Matriz -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            ${obsDept.length === 0 ? `
+              <div class="p-10 text-center text-sm text-slate-500">
+                Nenhuma obrigação ativa cadastrada para o departamento <strong>${DEPT_LABELS[dept]}</strong>.
+              </div>
+            ` : `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                      <th class="px-5 py-3.5 font-semibold sticky left-0 bg-slate-50 z-10 min-w-[220px]">Cliente</th>
+                      ${obsDept.map(ob => `
+                        <th class="px-4 py-3.5 font-semibold text-center min-w-[150px]">
+                          <div class="text-slate-700 normal-case text-xs font-bold">${escapeHtml(ob.nome)}</div>
+                          <div class="text-[10px] font-medium text-slate-400 mt-0.5">Dia ${String(ob.dia_vencimento).padStart(2, '0')}</div>
+                        </th>
+                      `).join('')}
+                      <th class="px-4 py-3.5 font-semibold text-center w-20">WhatsApp</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-sm">
+                    ${filteredClients.length === 0 ? `
+                      <tr>
+                        <td colspan="${obsDept.length + 2}" class="px-6 py-10 text-center text-sm text-slate-400">
+                          Nenhum cliente encontrado com os filtros aplicados.
+                        </td>
+                      </tr>
+                    ` : filteredClients.map(client => `
+                      <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="px-5 py-3.5 sticky left-0 bg-white z-10 border-r border-slate-100">
+                          <div class="font-semibold text-slate-900 text-sm">${escapeHtml(client.razao_social)}</div>
+                          <div class="text-[11px] text-slate-400">${escapeHtml(client.regime)} ${client.cnpj ? `· ${escapeHtml(client.cnpj)}` : ''}</div>
+                        </td>
+                        ${obsDept.map(ob => {
+                          if (!clienteTemObrigacao(client.id, ob.id)) {
+                            return `<td class="px-4 py-3.5 text-center text-slate-300 select-none">—</td>`;
+                          }
+                          const ent = getEntrega(client.id, ob.id);
+                          const st = ent ? ent.status : 'pendente';
+                          const cfg = STATUS_CONFIG[st] || STATUS_CONFIG.pendente;
+                          const dueInfo = getDueStatus(state.competencia, ob.dia_vencimento, st);
+                          const isOverdue = dueInfo.state === 'overdue';
+                          const tooltip = ent && ent.atualizado_por
+                            ? `${cfg.label} por ${ent.atualizado_por} em ${formatDateTimeBR(ent.atualizado_em)}`
+                            : 'Clique para alterar status';
+
+                          return `
+                            <td class="px-3 py-3 text-center">
+                              <button onclick="openStatusModal('${client.id}', '${ob.id}')" title="${escapeHtml(tooltip)}"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${cfg.badge} ${isOverdue ? 'ring-2 ring-red-400/70' : ''}">
+                                <span class="w-1.5 h-1.5 rounded-full ${cfg.dot}"></span>
+                                <span>${cfg.label}</span>
+                                ${ent?.observacao ? `<span title="${escapeHtml(ent.observacao)}" class="text-[10px] opacity-80">💬</span>` : ''}
+                              </button>
+                            </td>
+                          `;
+                        }).join('')}
+                        <td class="px-4 py-3.5 text-center">
+                          <button onclick="openWhatsAppModal('${client.id}')" title="Enviar WhatsApp"
+                            class="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/70 transition-colors cursor-pointer">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== 3. CLIENTES & REGRAS ====================
+    function renderClientes() {
+      const term = state.filters.clientSearch.toLowerCase();
+      const filtered = state.clientes.filter(c => {
+        if (state.filters.clientRegime !== 'todos' && c.regime !== state.filters.clientRegime) return false;
+        if (term && !c.razao_social.toLowerCase().includes(term) && !(c.cnpj || '').toLowerCase().includes(term) && !(c.socio_nome || '').toLowerCase().includes(term)) return false;
+        return true;
+      });
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Clientes & Regras</h2>
+              <p class="text-sm text-slate-500">Cadastre empresas e defina exatamente quais obrigações se aplicam a cada uma.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="abrirModalImportarCSV()"
+                class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Importar CSV
+              </button>
+              <button onclick="openClientModal()"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Novo Cliente
+              </button>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+            <input type="text" value="${escapeHtml(state.filters.clientSearch)}" oninput="state.filters.clientSearch = this.value; renderAll();"
+              placeholder="Buscar por razão social, CNPJ ou sócio..."
+              class="flex-1 min-w-[200px] px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+            <select onchange="state.filters.clientRegime = this.value; renderAll();" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="todos" ${state.filters.clientRegime === 'todos' ? 'selected' : ''}>Todos os regimes</option>
+              <option value="Simples Nacional" ${state.filters.clientRegime === 'Simples Nacional' ? 'selected' : ''}>Simples Nacional</option>
+              <option value="Lucro Presumido" ${state.filters.clientRegime === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
+              <option value="Lucro Real" ${state.filters.clientRegime === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+            </select>
+          </div>
+
+          <!-- Lista -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                    <th class="px-5 py-3.5 font-semibold">Empresa</th>
+                    <th class="px-5 py-3.5 font-semibold">Sócio / WhatsApp</th>
+                    <th class="px-5 py-3.5 font-semibold">Regime</th>
+                    <th class="px-5 py-3.5 font-semibold text-center">Rotinas</th>
+                    <th class="px-5 py-3.5 font-semibold text-center">Status</th>
+                    <th class="px-5 py-3.5 font-semibold text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                  ${filtered.length === 0 ? `
+                    <tr>
+                      <td colspan="6" class="px-6 py-10 text-center text-sm text-slate-400">
+                        Nenhum cliente encontrado. Clique em <strong>Novo Cliente</strong> ou <strong>Importar CSV</strong>.
+                      </td>
+                    </tr>
+                  ` : filtered.map(c => {
+                    const qtdRotinas = state.matriz.filter(m => m.cliente_id === c.id).length;
+                    return `
+                      <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="px-5 py-3.5">
+                          <div class="font-semibold text-slate-900">${escapeHtml(c.razao_social)}</div>
+                          <div class="text-xs text-slate-400">${escapeHtml(c.cnpj || 'Sem CNPJ')} ${c.atividade ? `· ${escapeHtml(c.atividade)}` : ''}</div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                          <div class="text-slate-800 font-medium">${escapeHtml(c.socio_nome || '—')}</div>
+                          <div class="text-xs text-slate-400">${escapeHtml(c.socio_whatsapp || 'Sem WhatsApp')}</div>
+                        </td>
+                        <td class="px-5 py-3.5 text-slate-600 text-xs font-medium">${escapeHtml(c.regime)}</td>
+                        <td class="px-5 py-3.5 text-center">
+                          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">${qtdRotinas}</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                          <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${c.ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                            ${c.ativo ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-right">
+                          <button onclick="openClientModal('${c.id}')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer">
+                            Editar / Regras
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     // ==================== 4. CATÁLOGO DE OBRIGAÇÕES ====================
     function renderCatalogo() {
       return `
@@ -786,7 +1636,152 @@
     }
 
     // ==================== AÇÕES DE STATUS ====================
-// ... existing code ... -->
+    function openStatusModal(clienteId, obrigacaoId) {
+      const client = state.clientes.find(c => c.id === clienteId);
+      const ob = state.obrigacoes.find(o => o.id === obrigacaoId);
+      if (!client || !ob) return;
+
+      const ent = getEntrega(clienteId, obrigacaoId);
+      const currentStatus = ent ? ent.status : 'pendente';
+
+      state.activeStatusCtx = { clienteId, obrigacaoId, selectedStatus: currentStatus };
+
+      document.getElementById('sm-client-name').textContent = client.razao_social;
+      document.getElementById('sm-obligation-name').textContent = `${ob.nome} · Dia ${String(ob.dia_vencimento).padStart(2, '0')}`;
+      document.getElementById('sm-obs').value = ent?.observacao || '';
+      document.getElementById('sm-audit').textContent = ent && ent.atualizado_por
+        ? `Última alteração por ${ent.atualizado_por} em ${formatDateTimeBR(ent.atualizado_em)}`
+        : 'Sem alterações registradas nesta competência';
+
+      renderStatusOptions(currentStatus);
+      openModal('status-modal');
+    }
+
+    function renderStatusOptions(selectedKey) {
+      const container = document.getElementById('sm-status-options');
+      container.innerHTML = Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+        const isSelected = key === selectedKey;
+        return `
+          <button type="button" onclick="selectStatusOption('${key}')"
+            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+              isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }">
+            <span class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full ${cfg.dot}"></span>
+              ${cfg.label}
+            </span>
+            ${isSelected ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectStatusOption(key) {
+      if (!state.activeStatusCtx) return;
+      state.activeStatusCtx.selectedStatus = key;
+      renderStatusOptions(key);
+    }
+
+    async function saveStatusModal() {
+      if (!state.activeStatusCtx) return;
+      const { clienteId, obrigacaoId, selectedStatus } = state.activeStatusCtx;
+      const observacao = document.getElementById('sm-obs').value.trim();
+
+      const btn = document.getElementById('btn-save-status');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        const payload = {
+          escritorio_id: state.perfil.escritorio_id,
+          cliente_id: clienteId,
+          obrigacao_id: obrigacaoId,
+          competencia: state.competencia,
+          status: selectedStatus,
+          observacao: observacao || null,
+          atualizado_por: state.perfil.nome,
+          atualizado_em: new Date().toISOString()
+        };
+
+        const { error } = await sb
+          .from('entregas_mensais')
+          .upsert(payload, { onConflict: 'cliente_id,obrigacao_id,competencia' });
+
+        if (error) throw error;
+
+        closeModal('status-modal');
+        await carregarEntregasCompetencia();
+        renderAll();
+        showToast('Status atualizado!');
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar status: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar';
+      }
+    }
+
+    // ==================== WHATSAPP ====================
+    function openWhatsAppModal(clienteId) {
+      const client = state.clientes.find(c => c.id === clienteId);
+      if (!client) return;
+      state.activeWhatsAppClient = client;
+      document.getElementById('wm-subtitle').textContent = `${client.razao_social} · ${client.socio_nome || 'Sócio'}`;
+      applyWhatsAppTemplate('pendencias');
+      openModal('whatsapp-modal');
+    }
+
+    function applyWhatsAppTemplate(type) {
+      const client = state.activeWhatsAppClient;
+      if (!client) return;
+
+      const btnPend = document.getElementById('wm-tpl-pendencias');
+      const btnConc = document.getElementById('wm-tpl-conclusao');
+      const activeCls = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-900 bg-slate-900 text-white transition-colors cursor-pointer';
+      const inactiveCls = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer';
+
+      btnPend.className = type === 'pendencias' ? activeCls : inactiveCls;
+      btnConc.className = type === 'conclusao' ? activeCls : inactiveCls;
+
+      const compLabel = formatCompetencia(state.competencia);
+      const socio = client.socio_nome || 'tudo bem';
+
+      if (type === 'pendencias') {
+        const linkedObs = state.obrigacoes.filter(o => o.ativa && clienteTemObrigacao(client.id, o.id));
+        const waiting = linkedObs.filter(o => getEntrega(client.id, o.id)?.status === 'aguardando_cliente');
+        const list = waiting.length > 0
+          ? waiting
+          : linkedObs.filter(o => !STATUS_CONFIG[getEntrega(client.id, o.id)?.status || 'pendente']?.resolved);
+
+        const bullets = list.length > 0
+          ? list.map(o => {
+              const obs = getEntrega(client.id, o.id)?.observacao;
+              return `• ${o.nome}${obs ? ` (${obs})` : ''}`;
+            }).join('\n')
+          : '• Documentação mensal pendente';
+
+        document.getElementById('wm-message').value =
+          `Olá ${socio}, tudo bem?\n\nPara fecharmos a competência ${compLabel} da empresa ${client.razao_social}, estamos aguardando:\n${bullets}\n\nQualquer dúvida, estou à disposição!`;
+      } else {
+        document.getElementById('wm-message').value =
+          `Olá ${socio}, tudo bem?\n\nPassando para informar que as rotinas da competência ${compLabel} da empresa ${client.razao_social} foram concluídas com sucesso.\n\nQualquer dúvida, estou à disposição!`;
+      }
+    }
+
+    function openWhatsAppLink() {
+      const client = state.activeWhatsAppClient;
+      if (!client) return;
+      const phone = (client.socio_whatsapp || '').replace(/\D/g, '');
+      if (!phone) {
+        showToast('Este cliente não possui número de WhatsApp cadastrado.');
+        return;
+      }
+      const msg = document.getElementById('wm-message').value.trim();
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
     // ==================== CLIENTES (CRUD) ====================
     function openClientModal(clientId = null) {
       const client = clientId ? state.clientes.find(c => c.id === clientId) : null;
@@ -804,7 +1799,85 @@
       if (delBtn) delBtn.classList.toggle('hidden', !client);
 
       const container = document.getElementById('cm-obligations-list');
-// ... existing code ... -->
+      const activeObs = state.obrigacoes.filter(o => o.ativa);
+
+      container.innerHTML = ['fiscal', 'contabil', 'trabalhista'].map(dept => {
+        const list = activeObs.filter(o => o.departamento === dept);
+        return `
+          <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 space-y-2">
+            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500">${DEPT_LABELS[dept]}</h5>
+            ${list.length === 0 ? `<p class="text-[11px] text-slate-400">Sem obrigações</p>` : list.map(ob => {
+              const checked = client ? clienteTemObrigacao(client.id, ob.id) : false;
+              return `
+                <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer select-none">
+                  <input type="checkbox" class="cm-ob-check mt-0.5 rounded border-slate-300 text-slate-900" value="${ob.id}" ${checked ? 'checked' : ''}>
+                  <span>${escapeHtml(ob.nome)}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('');
+
+      openModal('client-modal');
+    }
+
+    async function saveClient() {
+      const id = document.getElementById('cm-id').value;
+      const razao_social = document.getElementById('cm-razao').value.trim();
+      if (!razao_social) {
+        showToast('Informe a Razão Social.');
+        return;
+      }
+
+      const payload = {
+        escritorio_id: state.perfil.escritorio_id,
+        razao_social,
+        cnpj: document.getElementById('cm-cnpj').value.trim(),
+        atividade: document.getElementById('cm-atividade').value.trim(),
+        socio_nome: document.getElementById('cm-socio').value.trim(),
+        socio_whatsapp: document.getElementById('cm-whatsapp').value.replace(/\D/g, ''),
+        regime: document.getElementById('cm-regime').value,
+        ativo: document.getElementById('cm-ativo').value === 'true'
+      };
+
+      const selectedObIds = Array.from(document.querySelectorAll('.cm-ob-check:checked')).map(el => el.value);
+
+      const btn = document.getElementById('btn-save-client');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        let clienteId = id;
+        if (id) {
+          const { error } = await sb.from('clientes').update(payload).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await sb.from('clientes').insert(payload).select('id').single();
+          if (error) throw error;
+          clienteId = data.id;
+        }
+
+        // Atualiza matriz de obrigações do cliente
+        const { error: delErr } = await sb.from('cliente_obrigacoes').delete().eq('cliente_id', clienteId);
+        if (delErr) throw delErr;
+
+        if (selectedObIds.length > 0) {
+          const rows = selectedObIds.map(obId => ({
+            cliente_id: clienteId,
+            obrigacao_id: obId,
+            escritorio_id: state.perfil.escritorio_id
+          }));
+          const { error: insErr } = await sb.from('cliente_obrigacoes').insert(rows);
+          if (insErr) throw insErr;
+        }
+
+        closeModal('client-modal');
+        await carregarDados(false);
+        showToast(id ? 'Cliente atualizado!' : 'Cliente cadastrado!');
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar cliente: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Salvar Cliente';
@@ -845,4 +1918,321 @@
     }
 
     // ==================== IMPORTAÇÃO DE CLIENTES VIA CSV ====================
-// ... existing code ... -->
+    let clientesParaImportar = [];
+
+    function abrirModalImportarCSV() {
+      clientesParaImportar = [];
+      document.getElementById('input-arquivo-csv').value = '';
+      document.getElementById('csv-preview-area').classList.add('hidden');
+      document.getElementById('btn-confirmar-csv').disabled = true;
+      openModal('modal-importar-csv');
+    }
+
+    function fecharModalImportarCSV() {
+      closeModal('modal-importar-csv');
+    }
+
+    function baixarModeloCSV() {
+      const cabecalho = 'razao_social;cnpj;socio_nome;socio_whatsapp;atividade;regime\n';
+      const exemplo = 'Empresa Exemplo Ltda;12.345.678/0001-90;João Silva;5579999999999;Comércio Varejista;Simples Nacional\n';
+      const blob = new Blob(['\uFEFF' + cabecalho + exemplo], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modelo_clientes_controle_contabil.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function normalizarRegime(valor) {
+      const v = (valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (v.includes('presumido')) return 'Lucro Presumido';
+      if (v.includes('real')) return 'Lucro Real';
+      return 'Simples Nacional';
+    }
+
+    function limparCNPJ(cnpj) {
+      return (cnpj || '').replace(/\D/g, '');
+    }
+
+    async function processarArquivoCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const texto = await file.text();
+        const linhas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim() !== '');
+        if (linhas.length < 2) {
+          showToast('O arquivo precisa ter o cabeçalho e pelo menos um cliente.');
+          return;
+        }
+
+        const separador = linhas[0].includes(';') ? ';' : ',';
+        const cnpjsExistentes = new Set(state.clientes.map(c => limparCNPJ(c.cnpj)).filter(Boolean));
+        const cnpjsNoArquivo = new Set();
+
+        clientesParaImportar = [];
+        const tbody = document.getElementById('csv-preview-tbody');
+        tbody.innerHTML = '';
+
+        let validos = 0;
+        let ignorados = 0;
+
+        for (let i = 1; i < linhas.length; i++) {
+          const cols = linhas[i].split(separador).map(c => c.replace(/^"|"$/g, '').trim());
+          const [razao_social, cnpj, socio_nome, socio_whatsapp, atividade, regimeRaw] = cols;
+
+          if (!razao_social) continue;
+
+          const cnpjLimpo = limparCNPJ(cnpj);
+          const regime = normalizarRegime(regimeRaw);
+          let statusBadge = '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold">Novo</span>';
+          let valido = true;
+
+          if (cnpjLimpo && (cnpjsExistentes.has(cnpjLimpo) || cnpjsNoArquivo.has(cnpjLimpo))) {
+            statusBadge = '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">Duplicado</span>';
+            valido = false;
+            ignorados++;
+          } else {
+            if (cnpjLimpo) cnpjsNoArquivo.add(cnpjLimpo);
+            validos++;
+            clientesParaImportar.push({
+              razao_social,
+              cnpj: cnpj || '',
+              socio_nome: socio_nome || '',
+              socio_whatsapp: (socio_whatsapp || '').replace(/\D/g, ''),
+              atividade: atividade || '',
+              regime,
+              ativo: true
+            });
+          }
+
+          tbody.innerHTML += `
+            <tr class="${valido ? '' : 'opacity-50 bg-slate-50'}">
+              <td class="px-3 py-2">${statusBadge}</td>
+              <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(razao_social)}</td>
+              <td class="px-3 py-2 text-slate-600">${escapeHtml(cnpj || '—')}</td>
+              <td class="px-3 py-2 text-slate-600">${escapeHtml(socio_nome || '—')} ${socio_whatsapp ? `(${escapeHtml(socio_whatsapp)})` : ''}</td>
+              <td class="px-3 py-2 text-slate-600">${escapeHtml(regime)}</td>
+            </tr>
+          `;
+        }
+
+        document.getElementById('csv-resumo').innerHTML =
+          `Encontrados <strong>${validos}</strong> clientes novos para importar` +
+          (ignorados > 0 ? ` e <strong>${ignorados}</strong> duplicados que serão ignorados.` : '.');
+
+        document.getElementById('csv-preview-area').classList.remove('hidden');
+        document.getElementById('btn-confirmar-csv').disabled = validos === 0;
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao ler arquivo CSV: ' + err.message);
+      }
+    }
+
+    async function confirmarImportacaoCSV() {
+      if (clientesParaImportar.length === 0) return;
+
+      const btn = document.getElementById('btn-confirmar-csv');
+      btn.disabled = true;
+      btn.textContent = 'Importando...';
+
+      try {
+        const payload = clientesParaImportar.map(c => ({
+          ...c,
+          escritorio_id: state.perfil.escritorio_id
+        }));
+
+        const { error } = await sb.from('clientes').insert(payload);
+        if (error) throw error;
+
+        fecharModalImportarCSV();
+        await carregarDados(false);
+        showToast(`${payload.length} clientes importados com sucesso!`);
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao importar clientes: ' + err.message);
+      } finally {
+        btn.textContent = 'Importar Clientes Válidos';
+        btn.disabled = false;
+      }
+    }
+
+    // ==================== CATÁLOGO DE OBRIGAÇÕES (CRUD) ====================
+    function openObligationModal(obId = null) {
+      const ob = obId ? state.obrigacoes.find(o => o.id === obId) : null;
+      document.getElementById('om-title').textContent = ob ? 'Editar Obrigação' : 'Nova Obrigação';
+      document.getElementById('om-id').value = ob ? ob.id : '';
+      document.getElementById('om-name').value = ob ? ob.nome : '';
+      document.getElementById('om-dept').value = ob ? ob.departamento : 'fiscal';
+      document.getElementById('om-due-day').value = ob ? ob.dia_vencimento : 20;
+      openModal('obligation-modal');
+    }
+
+    async function saveObligation() {
+      const id = document.getElementById('om-id').value;
+      const nome = document.getElementById('om-name').value.trim();
+      const departamento = document.getElementById('om-dept').value;
+      const dia_vencimento = Math.min(31, Math.max(1, parseInt(document.getElementById('om-due-day').value, 10) || 20));
+
+      if (!nome) {
+        showToast('Informe o nome da obrigação.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-ob');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        if (id) {
+          const { error } = await sb
+            .from('obrigacoes')
+            .update({ nome, departamento, dia_vencimento })
+            .eq('id', id);
+          if (error) throw error;
+        } else {
+          const { error } = await sb
+            .from('obrigacoes')
+            .insert({
+              escritorio_id: state.perfil.escritorio_id,
+              nome,
+              departamento,
+              dia_vencimento,
+              ativa: true
+            });
+          if (error) throw error;
+        }
+
+        closeModal('obligation-modal');
+        await carregarDados(false);
+        showToast(id ? 'Obrigação atualizada!' : 'Obrigação cadastrada!');
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar obrigação: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Obrigação';
+      }
+    }
+
+    async function toggleObrigacaoAtiva(id, ativa) {
+      try {
+        const { error } = await sb.from('obrigacoes').update({ ativa }).eq('id', id);
+        if (error) throw error;
+        await carregarDados(false);
+        showToast(ativa ? 'Obrigação ativada.' : 'Obrigação desativada.');
+      } catch (err) {
+        showToast('Erro ao alterar obrigação: ' + err.message);
+      }
+    }
+
+    async function carregarObrigacoesPadrao() {
+      try {
+        const rows = DEFAULT_OBLIGATIONS.map(o => ({
+          ...o,
+          escritorio_id: state.perfil.escritorio_id,
+          ativa: true
+        }));
+        const { error } = await sb.from('obrigacoes').insert(rows);
+        if (error) throw error;
+        await carregarDados(false);
+        showToast('Obrigações padrão carregadas!');
+      } catch (err) {
+        showToast('Erro ao carregar padrão: ' + err.message);
+      }
+    }
+
+    // ==================== NOVA COMPETÊNCIA ====================
+    function openNewCompetenciaModal() {
+      const [anoStr, mesStr] = state.competencia.split('-');
+      let ano = parseInt(anoStr, 10);
+      let mes = parseInt(mesStr, 10) + 1;
+      if (mes > 12) { mes = 1; ano++; }
+      document.getElementById('new-comp-input').value = `${ano}-${String(mes).padStart(2, '0')}`;
+      openModal('competencia-modal');
+    }
+
+    async function createNewCompetencia() {
+      const newComp = document.getElementById('new-comp-input').value;
+      if (!newComp) {
+        showToast('Selecione o mês e o ano.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-create-comp');
+      btn.disabled = true;
+      btn.textContent = 'Gerando...';
+
+      try {
+        const activeClientIds = new Set(state.clientes.filter(c => c.ativo).map(c => c.id));
+        const activeObIds = new Set(state.obrigacoes.filter(o => o.ativa).map(o => o.id));
+
+        const rows = state.matriz
+          .filter(m => activeClientIds.has(m.cliente_id) && activeObIds.has(m.obrigacao_id))
+          .map(m => ({
+            escritorio_id: state.perfil.escritorio_id,
+            cliente_id: m.cliente_id,
+            obrigacao_id: m.obrigacao_id,
+            competencia: newComp,
+            status: 'pendente'
+          }));
+
+        if (rows.length > 0) {
+          const { error } = await sb
+            .from('entregas_mensais')
+            .upsert(rows, { onConflict: 'cliente_id,obrigacao_id,competencia', ignoreDuplicates: true });
+          if (error) throw error;
+        }
+
+        state.competencia = newComp;
+        closeModal('competencia-modal');
+        await carregarDados(false);
+        showToast(`Competência ${formatCompetencia(newComp)} aberta!`);
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao abrir competência: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Gerar Competência';
+      }
+    }
+
+    // ==================== UTILITÁRIOS DE MODAL & TOAST ====================
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-text');
+      if (!toast || !text) return;
+      text.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3200);
+    }
+
+    // ==================== BOOTSTRAP ====================
+    window.addEventListener('DOMContentLoaded', async () => {
+      initSupabaseClient();
+      await checkSession();
+    });
+  </script>
+</body>
+</html>
