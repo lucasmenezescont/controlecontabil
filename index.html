@@ -82,8 +82,8 @@
     <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shrink-0">
       <div>
         <!-- Cabeçalho da Sidebar -->
-        <div class="h-16 px-5 flex items-center justify-between border-b border-slate-100">
-          <div class="flex items-center gap-2.5 min-w-0">
+        <div class="h-16 px-5 flex items-center justify-between gap-2 border-b border-slate-100">
+          <div id="sidebar-brand" class="flex items-center gap-2.5 min-w-0 flex-1">
             <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
               CC
             </div>
@@ -92,7 +92,7 @@
               <p id="sidebar-office-name" class="text-[11px] text-slate-500 font-medium truncate">Carregando...</p>
             </div>
           </div>
-          <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
@@ -127,6 +127,12 @@
           <button onclick="navigate('catalogo')" id="nav-catalogo" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
             Catálogo de Obrigações
+          </button>
+
+          <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Sistema</p>
+          <button onclick="navigate('configuracoes')" id="nav-configuracoes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Configurações
           </button>
         </nav>
       </div>
@@ -335,9 +341,36 @@
           <div id="cm-obligations-list" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
         </div>
       </div>
-      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 shrink-0">
-        <button onclick="closeModal('client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
-        <button id="btn-save-client" onclick="saveClient()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 cursor-pointer">Salvar Cliente</button>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <button id="btn-delete-client" type="button" onclick="openDeleteClientConfirm()"
+            class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer">
+            Excluir Cliente
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
+          <button id="btn-save-client" onclick="saveClient()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 cursor-pointer">Salvar Cliente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4b. Modal Confirmação de Exclusão de Cliente -->
+  <div id="delete-client-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+      <div class="p-6 space-y-3">
+        <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="text-base font-bold text-slate-900">Excluir Cliente</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Tem certeza que deseja excluir <strong id="dcm-client-name" class="text-slate-800"></strong>? Todas as obrigações vinculadas e o histórico de entregas deste cliente serão removidos permanentemente.
+        </p>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('delete-client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
+        <button id="btn-confirm-delete-client" onclick="confirmDeleteClient()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 cursor-pointer">Confirmar Exclusão</button>
       </div>
     </div>
   </div>
@@ -470,294 +503,22 @@
     // CONFIGURAÇÃO DO SUPABASE
     // Cole sua Project URL e Anon Public Key abaixo
     // ==========================================
-    const DEFAULT_SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-    const DEFAULT_SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_AQUI';
+    const DEFAULT_SUPABASE_URL = '';
+    const DEFAULT_SUPABASE_ANON_KEY = '';
 
     const LS_URL_KEY = 'cc_supabase_url';
-    const LS_ANON_KEY = 'cc_supabase_anon_key';
-
-    let sb = null;
-    let realtimeChannel = null;
-
-    const DEPT_LABELS = {
-      fiscal: 'Fiscal',
-      contabil: 'Contábil',
-      trabalhista: 'Trabalhista'
-    };
-
-    const STATUS_CONFIG = {
-      pendente: {
-        label: 'Pendente',
-        badge: 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/70',
-        dot: 'bg-slate-400',
-        resolved: false
-      },
-      aguardando_cliente: {
-        label: 'Aguardando Cliente',
-        badge: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
-        dot: 'bg-amber-500',
-        resolved: false
-      },
-      em_andamento: {
-        label: 'Em Andamento',
-        badge: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
-        dot: 'bg-blue-500',
-        resolved: false
-      },
-      concluido: {
-        label: 'Concluído',
-        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
-        dot: 'bg-emerald-500',
-        resolved: true
-      },
-      sem_movimento: {
-        label: 'Sem Movimento',
-        badge: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
-        dot: 'bg-purple-500',
-        resolved: true
-      }
-    };
-
-    // Estado Global
-    const state = {
-      currentPage: 'dashboard',
-      currentCompetencia: getCurrentYYYYMM(),
-      competencias: [getCurrentYYYYMM()],
-      perfil: null,
-      escritorio: null,
-      clientes: [],
-      obrigacoes: [],
-      matriz: new Set(), // "cliente_id|obrigacao_id"
-      entregas: {},      // "cliente_id|obrigacao_id" -> row de entregas_mensais
-      filters: {
-        search: '',
-        regime: 'Todos',
-        onlyPending: false,
-        clientSearch: ''
-      }
-    };
-
-    let activeStatusContext = null;
-    let selectedModalStatus = 'pendente';
-    let activeWhatsAppClientId = null;
-    let clientesParaImportar = [];
-
-    // ==================== UTILITÁRIOS ====================
-    function getCurrentYYYYMM() {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    }
-
-    function formatCompBR(yyyyMm) {
-      if (!yyyyMm || !yyyyMm.includes('-')) return yyyyMm || '';
-      const [y, m] = yyyyMm.split('-');
-      return `${m}/${y}`;
-    }
-
-    function computeDueDateISO(yyyyMm, dueDay) {
-      const [yStr, mStr] = yyyyMm.split('-');
-      const year = parseInt(yStr, 10);
-      const month = parseInt(mStr, 10);
-      const lastDay = new Date(year, month, 0).getDate();
-      const day = Math.min(Math.max(parseInt(dueDay, 10) || 1, 1), lastDay);
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-
-    function formatDateBR(isoDate) {
-      if (!isoDate) return '—';
-      const [y, m, d] = isoDate.split('-');
-      return `${d}/${m}/${y}`;
-    }
-
-    function formatTimestampBR(isoTs) {
-      if (!isoTs) return '—';
-      const dt = new Date(isoTs);
-      if (isNaN(dt.getTime())) return '—';
-      return dt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-
-    function getTodayISO() {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    }
-
-    function daysUntil(isoDate) {
-      const today = new Date(getTodayISO() + 'T00:00:00');
-      const target = new Date(isoDate + 'T00:00:00');
-      return Math.round((target - today) / (1000 * 60 * 60 * 24));
-    }
-
-    function escapeHtml(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toast-text').textContent = msg;
-      toast.classList.remove('translate-y-20', 'opacity-0');
-      clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0');
-      }, 3200);
-    }
-
-    function openModal(id) {
-      const el = document.getElementById(id);
-      el.classList.remove('hidden');
-      el.classList.add('flex');
-    }
-
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      el.classList.add('hidden');
-      el.classList.remove('flex');
-    }
-
-    // ==================== INICIALIZAÇÃO SUPABASE ====================
-    function getSupabaseCredentials() {
-      const lsUrl = localStorage.getItem(LS_URL_KEY);
-      const lsKey = localStorage.getItem(LS_ANON_KEY);
-      const url = (lsUrl && lsUrl.trim()) ? lsUrl.trim() : DEFAULT_SUPABASE_URL;
-      const key = (lsKey && lsKey.trim()) ? lsKey.trim() : DEFAULT_SUPABASE_ANON_KEY;
-      const valid = url && key && !url.includes('SEU-PROJETO') && !key.includes('SUA_CHAVE_ANON');
-      return { url, key, valid };
-    }
-
-    function initSupabase() {
-      const { url, key, valid } = getSupabaseCredentials();
-      const badge = document.getElementById('supabase-status-badge');
-      if (!valid) {
-        sb = null;
-        if (badge) {
-          badge.textContent = 'Supabase não configurado';
-          badge.className = 'text-[11px] font-semibold text-amber-600';
-        }
-        return false;
-      }
-      sb = window.supabase.createClient(url, key);
-      if (badge) {
-        badge.textContent = 'Conectado ao Supabase';
-        badge.className = 'text-[11px] font-semibold text-emerald-600';
-      }
-      return true;
-    }
-
-    function openConfigModal() {
-      const { url, key } = getSupabaseCredentials();
-      document.getElementById('cfg-url').value = url.includes('SEU-PROJETO') ? '' : url;
-      document.getElementById('cfg-key').value = key.includes('SUA_CHAVE_ANON') ? '' : key;
-      openModal('config-modal');
-    }
-
-    function saveSupabaseConfig() {
-      const url = document.getElementById('cfg-url').value.trim();
-      const key = document.getElementById('cfg-key').value.trim();
-      if (!url || !key) {
-        showToast('Preencha a URL e a Anon Key.');
-        return;
-      }
-      localStorage.setItem(LS_URL_KEY, url);
-      localStorage.setItem(LS_ANON_KEY, key);
-      initSupabase();
-      closeModal('config-modal');
-      showToast('Conexão Supabase salva.');
-    }
-
-    // ==================== AUTENTICAÇÃO ====================
-    async function checkSession() {
-      if (!initSupabase()) {
-        showLoginScreen();
-        return;
-      }
-      const { data: { session } } = await sb.auth.getSession();
-      if (session && session.user) {
-        await bootstrapApp(session.user);
-      } else {
-        showLoginScreen();
-      }
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      const errBox = document.getElementById('login-error');
-      errBox.classList.add('hidden');
-
-      if (!sb && !initSupabase()) {
-        errBox.textContent = 'Configure a URL e a Anon Key do Supabase antes de entrar.';
-        errBox.classList.remove('hidden');
-        return;
-      }
-
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      const btn = document.getElementById('btn-login-submit');
-      btn.disabled = true;
-      btn.textContent = 'Entrando...';
-
-      try {
-        const { data, error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        await bootstrapApp(data.user);
-      } catch (err) {
-        errBox.textContent = err.message === 'Invalid login credentials'
-          ? 'E-mail ou senha inválidos.'
-          : (err.message || 'Erro ao fazer login.');
-        errBox.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
-    }
-
-    async function handleLogout() {
-      if (realtimeChannel && sb) {
-        sb.removeChannel(realtimeChannel);
-        realtimeChannel = null;
-      }
-      if (sb) await sb.auth.signOut();
-      state.perfil = null;
-      state.escritorio = null;
-      showLoginScreen();
-    }
-
-    function showLoginScreen() {
-      document.getElementById('login-screen').classList.remove('hidden');
-      document.getElementById('app-screen').classList.add('hidden');
-      document.getElementById('app-screen').classList.remove('flex');
-    }
-
-    function showAppScreen() {
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('app-screen').classList.remove('hidden');
-      document.getElementById('app-screen').classList.add('flex');
-    }
-
-    async function bootstrapApp(user) {
-      try {
-        const { data: perfil, error: pErr } = await sb
-          .from('perfis')
-          .select('id, escritorio_id, nome, cargo')
-          .eq('id', user.id)
-          .single();
-
-        if (pErr || !perfil) {
-          throw new Error('Perfil não encontrado na tabela perfis. Verifique o SQL da Etapa 3.');
-        }
+// ... existing code ... -->
         state.perfil = perfil;
 
         const { data: esc } = await sb
           .from('escritorios')
-          .select('id, nome, cnpj')
+          .select('id, nome, cnpj, logo_url')
           .eq('id', perfil.escritorio_id)
           .single();
 
-        state.escritorio = esc || { nome: 'Meu Escritório' };
+        state.escritorio = esc || { id: perfil.escritorio_id, nome: 'Meu Escritório', cnpj: '', logo_url: '' };
 
-        document.getElementById('sidebar-office-name').textContent = state.escritorio.nome;
+        renderSidebarBrand();
         document.getElementById('sidebar-user-name').textContent = state.perfil.nome;
         document.getElementById('sidebar-user-role').textContent = state.perfil.cargo;
 
@@ -765,121 +526,7 @@
         await carregarDados(false);
         setupRealtime();
       } catch (err) {
-        console.error(err);
-        showLoginScreen();
-        const errBox = document.getElementById('login-error');
-        errBox.textContent = err.message || 'Erro ao carregar perfil do usuário.';
-        errBox.classList.remove('hidden');
-      }
-    }
-
-    // ==================== CARREGAMENTO & REALTIME ====================
-    async function carregarDados(showFeedback = false) {
-      if (!sb || !state.perfil) return;
-
-      try {
-        const [resCli, resOb, resMat, resComps, resEnt] = await Promise.all([
-          sb.from('clientes').select('*').order('razao_social', { ascending: true }),
-          sb.from('obrigacoes').select('*').order('dia_vencimento', { ascending: true }).order('nome', { ascending: true }),
-          sb.from('cliente_obrigacoes').select('cliente_id, obrigacao_id'),
-          sb.from('entregas_mensais').select('competencia'),
-          sb.from('entregas_mensais').select('*').eq('competencia', state.currentCompetencia)
-        ]);
-
-        if (resCli.error) throw resCli.error;
-        if (resOb.error) throw resOb.error;
-        if (resMat.error) throw resMat.error;
-        if (resEnt.error) throw resEnt.error;
-
-        state.clientes = resCli.data || [];
-        state.obrigacoes = resOb.data || [];
-
-        state.matriz = new Set((resMat.data || []).map(r => `${r.cliente_id}|${r.obrigacao_id}`));
-
-        const compSet = new Set([state.currentCompetencia, getCurrentYYYYMM()]);
-        (resComps.data || []).forEach(r => { if (r.competencia) compSet.add(r.competencia); });
-        state.competencias = Array.from(compSet).sort().reverse();
-
-        state.entregas = {};
-        (resEnt.data || []).forEach(e => {
-          state.entregas[`${e.cliente_id}|${e.obrigacao_id}`] = e;
-        });
-
-        renderAll();
-        if (showFeedback) showToast('Dados sincronizados.');
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        showToast('Erro ao carregar dados do Supabase.');
-      }
-    }
-
-    function setupRealtime() {
-      if (!sb || !state.perfil) return;
-      if (realtimeChannel) sb.removeChannel(realtimeChannel);
-
-      realtimeChannel = sb
-        .channel('entregas-realtime')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'entregas_mensais',
-            filter: `escritorio_id=eq.${state.perfil.escritorio_id}`
-          },
-          (payload) => {
-            const row = payload.new || payload.old;
-            if (!row || row.competencia !== state.currentCompetencia) return;
-            const key = `${row.cliente_id}|${row.obrigacao_id}`;
-            if (payload.eventType === 'DELETE') {
-              delete state.entregas[key];
-            } else {
-              state.entregas[key] = payload.new;
-            }
-            renderAll();
-          }
-        )
-        .subscribe();
-    }
-
-    // ==================== NAVEGAÇÃO ====================
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebar-overlay');
-      const isClosed = sidebar.classList.contains('-translate-x-full');
-      sidebar.classList.toggle('-translate-x-full', !isClosed);
-      overlay.classList.toggle('hidden', !isClosed);
-    }
-
-    function navigate(page) {
-      state.currentPage = page;
-      document.getElementById('sidebar').classList.add('-translate-x-full');
-      document.getElementById('sidebar-overlay').classList.add('hidden');
-      renderAll();
-    }
-
-    async function changeCompetencia(comp) {
-      state.currentCompetencia = comp;
-      await carregarDados(false);
-    }
-
-    function updateNavStyles() {
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.className = 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer';
-      });
-      const active = document.getElementById(`nav-${state.currentPage}`);
-      if (active) {
-        active.className = 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-slate-900 text-white cursor-pointer';
-      }
-    }
-
-    function renderCompetenciaSelect() {
-      const select = document.getElementById('competencia-select');
-      select.innerHTML = state.competencias.map(c =>
-        `<option value="${c}" ${c === state.currentCompetencia ? 'selected' : ''}>${formatCompBR(c)}</option>`
-      ).join('');
-    }
-
+// ... existing code ... -->
     function renderAll() {
       updateNavStyles();
       renderCompetenciaSelect();
@@ -893,379 +540,54 @@
         main.innerHTML = renderClientes();
       } else if (state.currentPage === 'catalogo') {
         main.innerHTML = renderCatalogo();
+      } else if (state.currentPage === 'configuracoes') {
+        main.innerHTML = renderConfiguracoes();
       }
+    }
+
+    // ==================== IDENTIDADE VISUAL (SIDEBAR & PREVIEW) ====================
+    function buildDefaultBrandHtml(officeName) {
+      return `
+        <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+          CC
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-sm font-bold text-slate-900 leading-tight truncate">Controle Contábil</h1>
+          <p class="text-[11px] text-slate-500 font-medium truncate">${escapeHtml(officeName || 'Meu Escritório')}</p>
+        </div>
+      `;
+    }
+
+    function renderBrandIntoContainer(containerEl, officeName, logoUrl) {
+      if (!containerEl) return;
+      const cleanLogo = (logoUrl || '').trim();
+      const safeName = officeName || 'Meu Escritório';
+
+      if (cleanLogo) {
+        containerEl.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = cleanLogo;
+        img.alt = safeName;
+        img.className = 'max-h-12 w-auto max-w-full object-contain';
+        img.onerror = () => {
+          containerEl.innerHTML = buildDefaultBrandHtml(safeName);
+        };
+        containerEl.appendChild(img);
+      } else {
+        containerEl.innerHTML = buildDefaultBrandHtml(safeName);
+      }
+    }
+
+    function renderSidebarBrand() {
+      const officeName = state.escritorio?.nome || 'Meu Escritório';
+      const logoUrl = state.escritorio?.logo_url || '';
+      const container = document.getElementById('sidebar-brand');
+      renderBrandIntoContainer(container, officeName, logoUrl);
+      document.title = officeName ? `${officeName} – Controle Contábil` : 'Controle Contábil – Gestão de Rotinas';
     }
 
     function getEntrega(clienteId, obrigacaoId) {
-      return state.entregas[`${clienteId}|${obrigacaoId}`] || {
-        status: 'pendente',
-        observacao: '',
-        atualizado_por: null,
-        atualizado_em: null
-      };
-    }
-
-    // ==================== 1. VISÃO GERAL (DASHBOARD) ====================
-    function renderDashboard() {
-      const activeClients = state.clientes.filter(c => c.ativo);
-      const activeObs = state.obrigacoes.filter(o => o.ativa);
-
-      let total = 0;
-      let resolved = 0;
-      const deptStats = {
-        fiscal: { total: 0, resolved: 0 },
-        contabil: { total: 0, resolved: 0 },
-        trabalhista: { total: 0, resolved: 0 }
-      };
-
-      const waitingList = [];
-      const dueList = [];
-
-      activeClients.forEach(c => {
-        activeObs.forEach(ob => {
-          if (!state.matriz.has(`${c.id}|${ob.id}`)) return;
-          const ent = getEntrega(c.id, ob.id);
-          const cfg = STATUS_CONFIG[ent.status] || STATUS_CONFIG.pendente;
-          const dueDate = computeDueDateISO(state.currentCompetencia, ob.dia_vencimento);
-          const diffDays = daysUntil(dueDate);
-
-          total++;
-          deptStats[ob.departamento].total++;
-          if (cfg.resolved) {
-            resolved++;
-            deptStats[ob.departamento].resolved++;
-          } else {
-            if (ent.status === 'aguardando_cliente') {
-              waitingList.push({ client: c, ob, ent, dueDate });
-            }
-            if (diffDays <= 3) {
-              dueList.push({ client: c, ob, ent, dueDate, diffDays });
-            }
-          }
-        });
-      });
-
-      const pctGeral = total > 0 ? Math.round((resolved / total) * 100) : 0;
-      dueList.sort((a, b) => a.diffDays - b.diffDays);
-
-      return `
-        <div class="space-y-6">
-          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <div>
-              <h2 class="text-xl font-bold text-slate-900">Visão Geral</h2>
-              <p class="text-sm text-slate-500">Competência <strong>${formatCompBR(state.currentCompetencia)}</strong> · ${activeClients.length} clientes ativos</p>
-            </div>
-            ${state.obrigacoes.length === 0 ? `
-              <button onclick="carregarObrigacoesPadrao()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer self-start sm:self-auto">
-                Carregar Obrigações Padrão
-              </button>
-            ` : ''}
-          </div>
-
-          <!-- Progresso Geral + Departamentos -->
-          <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
-              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Progresso Geral</p>
-              <div class="mt-2 flex items-baseline gap-2">
-                <span class="text-3xl font-bold text-slate-900">${pctGeral}%</span>
-                <span class="text-xs text-slate-500">${resolved} de ${total}</span>
-              </div>
-              <div class="mt-3 w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div class="bg-slate-900 h-2 rounded-full transition-all duration-500" style="width: ${pctGeral}%"></div>
-              </div>
-            </div>
-
-            ${['fiscal', 'contabil', 'trabalhista'].map(d => {
-              const st = deptStats[d];
-              const pct = st.total > 0 ? Math.round((st.resolved / st.total) * 100) : 0;
-              return `
-                <div onclick="navigate('${d}')" class="bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 transition-colors cursor-pointer">
-                  <div class="flex items-center justify-between">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${DEPT_LABELS[d]}</p>
-                    <span class="text-xs font-bold text-slate-900">${pct}%</span>
-                  </div>
-                  <p class="mt-2 text-lg font-bold text-slate-800">${st.resolved} <span class="text-xs font-normal text-slate-400">/ ${st.total} concluídas</span></p>
-                  <div class="mt-3 w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div class="bg-slate-700 h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Dois Painéis de Destaque -->
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <!-- Painel 1: Aguardando Cliente -->
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <h3 class="text-sm font-bold text-slate-900">Aguardando Cliente</h3>
-                  <p class="text-xs text-slate-500">Pendências travadas esperando retorno ou documentos</p>
-                </div>
-                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">${waitingList.length}</span>
-              </div>
-              <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                ${waitingList.length === 0 ? `
-                  <p class="p-8 text-center text-xs text-slate-400">Nenhuma obrigação aguardando cliente.</p>
-                ` : waitingList.map(({ client, ob, ent }) => `
-                  <div class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/70">
-                    <div class="min-w-0">
-                      <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(client.razao_social)}</p>
-                      <p class="text-xs text-slate-500">${escapeHtml(ob.nome)} · <span class="text-slate-400">${DEPT_LABELS[ob.departamento]}</span></p>
-                      ${ent.observacao ? `<p class="text-xs text-amber-700 mt-0.5 truncate">"${escapeHtml(ent.observacao)}"</p>` : ''}
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <button onclick="openStatusModal('${client.id}', '${ob.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">Status</button>
-                      <button onclick="openWhatsAppModal('${client.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 cursor-pointer">WhatsApp</button>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-
-            <!-- Painel 2: Vencidas / Próximas do Vencimento -->
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <h3 class="text-sm font-bold text-slate-900">Vencidas / Próximas do Vencimento</h3>
-                  <p class="text-xs text-slate-500">Obrigações em aberto vencidas ou vencendo em até 3 dias</p>
-                </div>
-                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-700 border border-red-200">${dueList.length}</span>
-              </div>
-              <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                ${dueList.length === 0 ? `
-                  <p class="p-8 text-center text-xs text-slate-400">Nenhuma obrigação vencida ou próxima do vencimento.</p>
-                ` : dueList.map(({ client, ob, ent, dueDate, diffDays }) => {
-                  const isLate = diffDays < 0;
-                  const badgeText = isLate ? `Vencida há ${Math.abs(diffDays)}d` : (diffDays === 0 ? 'Vence hoje' : `Em ${diffDays}d`);
-                  return `
-                    <div class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/70">
-                      <div class="min-w-0">
-                        <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(client.razao_social)}</p>
-                        <p class="text-xs text-slate-500">${escapeHtml(ob.nome)} · Venc. ${formatDateBR(dueDate)}</p>
-                      </div>
-                      <div class="flex items-center gap-2 shrink-0">
-                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${isLate ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">${badgeText}</span>
-                        <button onclick="openStatusModal('${client.id}', '${ob.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">Atualizar</button>
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // ==================== 2. ROTINAS POR DEPARTAMENTO ====================
-    function updateFilter(key, value) {
-      state.filters[key] = value;
-      renderAll();
-    }
-
-    function renderRotinasDept(dept) {
-      const deptObs = state.obrigacoes.filter(o => o.departamento === dept && o.ativa);
-      let clients = state.clientes.filter(c => c.ativo);
-
-      if (state.filters.search.trim()) {
-        const q = state.filters.search.toLowerCase();
-        clients = clients.filter(c =>
-          (c.razao_social || '').toLowerCase().includes(q) ||
-          (c.cnpj || '').toLowerCase().includes(q)
-        );
-      }
-
-      if (state.filters.regime !== 'Todos') {
-        clients = clients.filter(c => c.regime === state.filters.regime);
-      }
-
-      if (state.filters.onlyPending) {
-        clients = clients.filter(c =>
-          deptObs.some(ob => {
-            if (!state.matriz.has(`${c.id}|${ob.id}`)) return false;
-            const ent = getEntrega(c.id, ob.id);
-            return !STATUS_CONFIG[ent.status]?.resolved;
-          })
-        );
-      }
-
-      return `
-        <div class="space-y-5">
-          <div>
-            <h2 class="text-xl font-bold text-slate-900">Rotinas — ${DEPT_LABELS[dept]}</h2>
-            <p class="text-sm text-slate-500">Competência <strong>${formatCompBR(state.currentCompetencia)}</strong> · Clique em qualquer status para atualizar.</p>
-          </div>
-
-          <!-- Filtros -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
-            <div class="flex-1 min-w-[220px] relative">
-              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <input type="text" value="${escapeHtml(state.filters.search)}" oninput="updateFilter('search', this.value)" placeholder="Buscar por Razão Social ou CNPJ..." class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
-            </div>
-
-            <select onchange="updateFilter('regime', this.value)" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white text-slate-700 focus:outline-none cursor-pointer">
-              <option value="Todos" ${state.filters.regime === 'Todos' ? 'selected' : ''}>Todos os Regimes</option>
-              <option value="Simples Nacional" ${state.filters.regime === 'Simples Nacional' ? 'selected' : ''}>Simples Nacional</option>
-              <option value="Lucro Presumido" ${state.filters.regime === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
-              <option value="Lucro Real" ${state.filters.regime === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
-            </select>
-
-            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50 select-none">
-              <input type="checkbox" ${state.filters.onlyPending ? 'checked' : ''} onchange="updateFilter('onlyPending', this.checked)" class="rounded border-slate-300 text-slate-900">
-              Apenas com pendências
-            </label>
-          </div>
-
-          <!-- Tabela Matriz -->
-          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            ${deptObs.length === 0 ? `
-              <div class="p-10 text-center text-sm text-slate-500">Nenhuma obrigação ativa cadastrada para ${DEPT_LABELS[dept]}.</div>
-            ` : clients.length === 0 ? `
-              <div class="p-10 text-center text-sm text-slate-500">Nenhum cliente encontrado com os filtros aplicados.</div>
-            ` : `
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200">
-                      <th class="px-5 py-3.5 text-xs font-bold text-slate-700 min-w-[240px]">Cliente</th>
-                      ${deptObs.map(ob => `
-                        <th class="px-4 py-3.5 text-center min-w-[160px]">
-                          <div class="text-xs font-bold text-slate-800">${escapeHtml(ob.nome)}</div>
-                          <div class="text-[11px] font-medium text-slate-400 mt-0.5">Venc. dia ${String(ob.dia_vencimento).padStart(2, '0')}</div>
-                        </th>
-                      `).join('')}
-                      <th class="px-4 py-3.5 text-center text-xs font-bold text-slate-700 w-24">WhatsApp</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    ${clients.map(c => `
-                      <tr class="hover:bg-slate-50/60 transition-colors">
-                        <td class="px-5 py-3.5">
-                          <div class="text-sm font-semibold text-slate-900">${escapeHtml(c.razao_social)}</div>
-                          <div class="text-xs text-slate-400 mt-0.5">${escapeHtml(c.cnpj || 'Sem CNPJ')} · <span class="text-slate-500 font-medium">${escapeHtml(c.regime)}</span></div>
-                        </td>
-                        ${deptObs.map(ob => {
-                          if (!state.matriz.has(`${c.id}|${ob.id}`)) {
-                            return `<td class="px-4 py-3.5 text-center text-slate-300 select-none text-sm">—</td>`;
-                          }
-                          const ent = getEntrega(c.id, ob.id);
-                          const cfg = STATUS_CONFIG[ent.status] || STATUS_CONFIG.pendente;
-                          const dueDate = computeDueDateISO(state.currentCompetencia, ob.dia_vencimento);
-                          const isLate = !cfg.resolved && daysUntil(dueDate) < 0;
-                          const auditTitle = ent.atualizado_por
-                            ? `Alterado por ${ent.atualizado_por} em ${formatTimestampBR(ent.atualizado_em)}`
-                            : 'Sem alterações';
-
-                          return `
-                            <td class="px-3 py-3.5 text-center">
-                              <div class="inline-flex flex-col items-center gap-1">
-                                <button onclick="openStatusModal('${c.id}', '${ob.id}')" title="${escapeHtml(auditTitle)}"
-                                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${cfg.badge}">
-                                  <span class="w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}"></span>
-                                  <span>${cfg.label}</span>
-                                  ${ent.observacao ? `<svg class="w-3.5 h-3.5 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>` : ''}
-                                </button>
-                                ${isLate ? `<span class="text-[10px] font-bold text-red-600">Atrasado (${formatDateBR(dueDate).slice(0,5)})</span>` : ''}
-                              </div>
-                            </td>
-                          `;
-                        }).join('')}
-                        <td class="px-4 py-3.5 text-center">
-                          <button onclick="openWhatsAppModal('${c.id}')" title="Enviar WhatsApp"
-                            class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            `}
-          </div>
-        </div>
-      `;
-    }
-
-    // ==================== 3. CLIENTES & REGRAS ====================
-    function renderClientes() {
-      const q = (state.filters.clientSearch || '').toLowerCase().trim();
-      const filtered = q
-        ? state.clientes.filter(c =>
-            (c.razao_social || '').toLowerCase().includes(q) ||
-            (c.cnpj || '').toLowerCase().includes(q) ||
-            (c.socio_nome || '').toLowerCase().includes(q)
-          )
-        : state.clientes;
-
-      return `
-        <div class="space-y-5">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 class="text-xl font-bold text-slate-900">Clientes & Regras</h2>
-              <p class="text-sm text-slate-500">Cadastre empresas, importe via CSV e defina quais obrigações se aplicam a cada cliente.</p>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="abrirModalImportarCSV()"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                Importar CSV
-              </button>
-              <button onclick="openClientModal()"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Novo Cliente
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-2xl border border-slate-200 p-3">
-            <input type="text" value="${escapeHtml(state.filters.clientSearch)}" oninput="updateFilter('clientSearch', this.value)"
-              placeholder="Buscar cliente por Razão Social, CNPJ ou Sócio..."
-              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
-          </div>
-
-          ${filtered.length === 0 ? `
-            <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
-              Nenhum cliente cadastrado ainda. Use <strong>Novo Cliente</strong> ou <strong>Importar CSV</strong>.
-            </div>
-          ` : `
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              ${filtered.map(c => {
-                const countObs = state.obrigacoes.filter(o => state.matriz.has(`${c.id}|${o.id}`)).length;
-                return `
-                  <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between gap-4 hover:border-slate-300 transition-colors">
-                    <div>
-                      <div class="flex items-start justify-between gap-2">
-                        <h3 class="text-sm font-bold text-slate-900 leading-snug">${escapeHtml(c.razao_social)}</h3>
-                        <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${c.ativo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
-                          ${c.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </div>
-                      <p class="text-xs text-slate-400 mt-1">${escapeHtml(c.cnpj || 'CNPJ não informado')}</p>
-                      <div class="mt-4 space-y-1.5 text-xs text-slate-600">
-                        <div class="flex justify-between"><span class="text-slate-400">Sócio:</span> <span class="font-medium text-slate-800">${escapeHtml(c.socio_nome || '—')}</span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">WhatsApp:</span> <span class="font-medium text-slate-800">${escapeHtml(c.socio_whatsapp || '—')}</span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">Regime:</span> <span class="font-medium text-slate-800">${escapeHtml(c.regime)}</span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">Atividade:</span> <span class="font-medium text-slate-800 truncate max-w-[160px]">${escapeHtml(c.atividade || '—')}</span></div>
-                      </div>
-                    </div>
-                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span class="text-xs text-slate-500"><strong>${countObs}</strong> obrigações vinculadas</span>
-                      <button onclick="openClientModal('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer">
-                        Editar & Regras
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          `}
-        </div>
-      `;
-    }
-
+// ... existing code ... -->
     // ==================== 4. CATÁLOGO DE OBRIGAÇÕES ====================
     function renderCatalogo() {
       return `
@@ -1325,148 +647,146 @@
       `;
     }
 
-    // ==================== AÇÕES DE STATUS ====================
-    function openStatusModal(clientId, obId) {
-      const client = state.clientes.find(c => c.id === clientId);
-      const ob = state.obrigacoes.find(o => o.id === obId);
-      if (!client || !ob) return;
-      const ent = getEntrega(clientId, obId);
+    // ==================== 5. CONFIGURAÇÕES DO ESCRITÓRIO ====================
+    function renderConfiguracoes() {
+      const esc = state.escritorio || { nome: '', cnpj: '', logo_url: '' };
+      setTimeout(() => updateConfigPreview(), 0);
 
-      activeStatusContext = { clientId, obId };
-      selectedModalStatus = ent.status || 'pendente';
+      return `
+        <div class="space-y-6 max-w-4xl">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Configurações</h2>
+            <p class="text-sm text-slate-500">Personalize a identidade visual (White-label) do seu escritório no sistema.</p>
+          </div>
 
-      document.getElementById('sm-client-name').textContent = client.razao_social;
-      document.getElementById('sm-obligation-name').textContent = `${ob.nome} (${DEPT_LABELS[ob.departamento]})`;
-      document.getElementById('sm-obs').value = ent.observacao || '';
-      document.getElementById('sm-audit').textContent = ent.atualizado_por
-        ? `Alterado por ${ent.atualizado_por} em ${formatTimestampBR(ent.atualizado_em)}`
-        : 'Sem alterações registradas nesta competência';
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+            <!-- Formulário Identidade -->
+            <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div class="px-6 py-4 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Identidade do Escritório</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Essas informações aparecem no menu lateral e no título do navegador.</p>
+              </div>
+              <div class="p-6 space-y-4">
+                <div>
+                  <label for="cfg-office-name" class="block text-xs font-semibold text-slate-600 mb-1.5">Nome do Escritório *</label>
+                  <input type="text" id="cfg-office-name" value="${escapeHtml(esc.nome || '')}" oninput="updateConfigPreview()"
+                    placeholder="Ex: Silva & Associados Contabilidade"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+                </div>
 
-      renderStatusOptions();
-      openModal('status-modal');
+                <div>
+                  <label for="cfg-office-cnpj" class="block text-xs font-semibold text-slate-600 mb-1.5">CNPJ do Escritório</label>
+                  <input type="text" id="cfg-office-cnpj" value="${escapeHtml(esc.cnpj || '')}"
+                    placeholder="00.000.000/0001-00"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="cfg-office-logo" class="block text-xs font-semibold text-slate-600">Link da Logo (Substitui o cabeçalho padrão)</label>
+                    <button type="button" onclick="clearConfigLogo()" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 underline underline-offset-2 cursor-pointer">
+                      Limpar logo
+                    </button>
+                  </div>
+                  <input type="text" id="cfg-office-logo" value="${escapeHtml(esc.logo_url || '')}" oninput="updateConfigPreview()"
+                    placeholder="logo.png ou https://exemplo.com/logo.png"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400">
+                  <p class="mt-2 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+                    <strong>Dica:</strong> Você pode usar um arquivo subido no mesmo repositório do GitHub (ex: <code class="bg-slate-200/70 px-1 py-0.5 rounded text-slate-800">logo.png</code>) ou qualquer link HTTPS direto de imagem. Recomendado <strong>PNG ou SVG horizontal</strong> com fundo transparente (aprox. <strong>400×100px</strong>).
+                  </p>
+                </div>
+              </div>
+              <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button id="btn-save-office-config" onclick="saveOfficeConfig()"
+                  class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
+                  Salvar Configurações
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div class="px-5 py-4 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Pré-visualização ao Vivo</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Como o topo do menu lateral será exibido.</p>
+              </div>
+              <div class="p-5 bg-slate-100/70">
+                <div class="w-full max-w-[256px] mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div class="h-16 px-5 flex items-center border-b border-slate-100">
+                    <div id="cfg-live-preview-brand" class="flex items-center gap-2.5 min-w-0 flex-1"></div>
+                  </div>
+                  <div class="p-3 space-y-1.5 opacity-60 pointer-events-none select-none">
+                    <div class="h-8 rounded-xl bg-slate-900 w-full"></div>
+                    <div class="h-7 rounded-xl bg-slate-100 w-4/5"></div>
+                    <div class="h-7 rounded-xl bg-slate-100 w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
-    function renderStatusOptions() {
-      const container = document.getElementById('sm-status-options');
-      container.innerHTML = Object.keys(STATUS_CONFIG).map(st => {
-        const cfg = STATUS_CONFIG[st];
-        const isSelected = selectedModalStatus === st;
-        return `
-          <button type="button" onclick="selectModalStatus('${st}')"
-            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${isSelected ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'}">
-            <span class="flex items-center gap-2.5">
-              <span class="w-2.5 h-2.5 rounded-full ${cfg.dot}"></span>
-              <span class="text-slate-800">${cfg.label}</span>
-            </span>
-            ${isSelected ? '<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
-          </button>
-        `;
-      }).join('');
+    function updateConfigPreview() {
+      const nameInput = document.getElementById('cfg-office-name');
+      const logoInput = document.getElementById('cfg-office-logo');
+      const previewEl = document.getElementById('cfg-live-preview-brand');
+      if (!previewEl) return;
+      const nome = nameInput ? nameInput.value.trim() : (state.escritorio?.nome || '');
+      const logo = logoInput ? logoInput.value.trim() : (state.escritorio?.logo_url || '');
+      renderBrandIntoContainer(previewEl, nome, logo);
     }
 
-    function selectModalStatus(st) {
-      selectedModalStatus = st;
-      renderStatusOptions();
+    function clearConfigLogo() {
+      const logoInput = document.getElementById('cfg-office-logo');
+      if (logoInput) {
+        logoInput.value = '';
+        updateConfigPreview();
+      }
     }
 
-    async function saveStatusModal() {
-      if (!activeStatusContext) return;
-      const { clientId, obId } = activeStatusContext;
-      const btn = document.getElementById('btn-save-status');
+    async function saveOfficeConfig() {
+      const nome = document.getElementById('cfg-office-name').value.trim();
+      const cnpj = document.getElementById('cfg-office-cnpj').value.trim();
+      const logo_url = document.getElementById('cfg-office-logo').value.trim();
+
+      if (!nome) {
+        showToast('Informe o nome do escritório.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-office-config');
       btn.disabled = true;
       btn.textContent = 'Salvando...';
 
       try {
-        const payload = {
-          escritorio_id: state.perfil.escritorio_id,
-          cliente_id: clientId,
-          obrigacao_id: obId,
-          competencia: state.currentCompetencia,
-          status: selectedModalStatus,
-          observacao: document.getElementById('sm-obs').value.trim(),
-          atualizado_por: state.perfil.nome,
-          atualizado_em: new Date().toISOString()
-        };
-
-        const { data, error } = await sb
-          .from('entregas_mensais')
-          .upsert(payload, { onConflict: 'cliente_id,obrigacao_id,competencia' })
-          .select()
-          .single();
+        const { error } = await sb
+          .from('escritorios')
+          .update({ nome, cnpj, logo_url: logo_url || null })
+          .eq('id', state.perfil.escritorio_id);
 
         if (error) throw error;
-        state.entregas[`${clientId}|${obId}`] = data;
-        closeModal('status-modal');
-        renderAll();
-        showToast('Status salvo.');
+
+        state.escritorio = {
+          ...state.escritorio,
+          nome,
+          cnpj,
+          logo_url: logo_url || ''
+        };
+        renderSidebarBrand();
+        showToast('Configurações do escritório salvas!');
       } catch (err) {
         console.error(err);
-        showToast('Erro ao salvar status: ' + err.message);
+        showToast('Erro ao salvar configurações: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Salvar';
+        btn.textContent = 'Salvar Configurações';
       }
     }
 
-    // ==================== WHATSAPP ====================
-    function openWhatsAppModal(clientId) {
-      const client = state.clientes.find(c => c.id === clientId);
-      if (!client) return;
-      activeWhatsAppClientId = clientId;
-      document.getElementById('wm-subtitle').textContent = `${client.socio_nome || 'Sócio'} · ${client.razao_social}`;
-      applyWhatsAppTemplate('pendencias');
-      openModal('whatsapp-modal');
-    }
-
-    function applyWhatsAppTemplate(type) {
-      const client = state.clientes.find(c => c.id === activeWhatsAppClientId);
-      if (!client) return;
-
-      const btnPend = document.getElementById('wm-tpl-pendencias');
-      const btnConc = document.getElementById('wm-tpl-conclusao');
-      const socio = client.socio_nome || 'tudo bem';
-      const compBR = formatCompBR(state.currentCompetencia);
-
-      if (type === 'pendencias') {
-        btnPend.className = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-900 bg-slate-900 text-white cursor-pointer';
-        btnConc.className = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer';
-
-        const waiting = [];
-        state.obrigacoes.filter(o => o.ativa).forEach(ob => {
-          if (!state.matriz.has(`${client.id}|${ob.id}`)) return;
-          const ent = getEntrega(client.id, ob.id);
-          if (ent.status === 'aguardando_cliente') {
-            const obs = ent.observacao ? ` (${ent.observacao})` : '';
-            waiting.push(`• ${ob.nome}${obs}`);
-          }
-        });
-
-        let msg = `Olá ${socio}, tudo bem?\n\nPara seguirmos com o fechamento da competência ${compBR} da empresa *${client.razao_social}*, estamos aguardando o envio de:\n\n`;
-        msg += waiting.length > 0 ? waiting.join('\n') : '• [Nenhum item marcado como "Aguardando Cliente"]';
-        msg += `\n\nAssim que puder nos encaminhar, já damos andamento por aqui. Obrigado!`;
-        document.getElementById('wm-message').value = msg;
-      } else {
-        btnConc.className = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-900 bg-slate-900 text-white cursor-pointer';
-        btnPend.className = 'flex-1 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer';
-
-        document.getElementById('wm-message').value =
-          `Olá ${socio}, tudo bem?\n\nPassando para informar que as rotinas da competência ${compBR} da empresa *${client.razao_social}* foram concluídas.\n\nQualquer dúvida, estamos à disposição!`;
-      }
-    }
-
-    function openWhatsAppLink() {
-      const client = state.clientes.find(c => c.id === activeWhatsAppClientId);
-      if (!client) return;
-      let phone = (client.socio_whatsapp || '').replace(/\D/g, '');
-      if (!phone) {
-        showToast('Este cliente não possui WhatsApp cadastrado.');
-        return;
-      }
-      if (phone.length <= 11) phone = '55' + phone;
-      const msg = encodeURIComponent(document.getElementById('wm-message').value);
-      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-    }
-
+    // ==================== AÇÕES DE STATUS ====================
+// ... existing code ... -->
     // ==================== CLIENTES (CRUD) ====================
     function openClientModal(clientId = null) {
       const client = clientId ? state.clientes.find(c => c.id === clientId) : null;
@@ -1480,375 +800,49 @@
       document.getElementById('cm-regime').value = client ? client.regime : 'Simples Nacional';
       document.getElementById('cm-ativo').value = client ? String(client.ativo) : 'true';
 
+      const delBtn = document.getElementById('btn-delete-client');
+      if (delBtn) delBtn.classList.toggle('hidden', !client);
+
       const container = document.getElementById('cm-obligations-list');
-      container.innerHTML = ['fiscal', 'contabil', 'trabalhista'].map(dept => {
-        const list = state.obrigacoes.filter(o => o.departamento === dept && o.ativa);
-        return `
-          <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70">
-            <p class="text-xs font-bold text-slate-700 mb-2.5">${DEPT_LABELS[dept]}</p>
-            <div class="space-y-2">
-              ${list.length === 0 ? '<p class="text-[11px] text-slate-400">Sem obrigações</p>' : list.map(ob => {
-                const checked = client ? state.matriz.has(`${client.id}|${ob.id}`) : true;
-                return `
-                  <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer select-none">
-                    <input type="checkbox" class="cm-ob-checkbox mt-0.5 rounded border-slate-300 text-slate-900" value="${ob.id}" ${checked ? 'checked' : ''}>
-                    <span>${escapeHtml(ob.nome)}</span>
-                  </label>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      openModal('client-modal');
-    }
-
-    async function saveClient() {
-      const id = document.getElementById('cm-id').value;
-      const razao_social = document.getElementById('cm-razao').value.trim();
-      if (!razao_social) {
-        showToast('Informe a Razão Social.');
-        return;
-      }
-
-      const btn = document.getElementById('btn-save-client');
-      btn.disabled = true;
-      btn.textContent = 'Salvando...';
-
-      try {
-        const payload = {
-          escritorio_id: state.perfil.escritorio_id,
-          razao_social,
-          cnpj: document.getElementById('cm-cnpj').value.trim(),
-          atividade: document.getElementById('cm-atividade').value.trim(),
-          socio_nome: document.getElementById('cm-socio').value.trim(),
-          socio_whatsapp: document.getElementById('cm-whatsapp').value.replace(/\D/g, ''),
-          regime: document.getElementById('cm-regime').value,
-          ativo: document.getElementById('cm-ativo').value === 'true'
-        };
-
-        let clienteId = id;
-        if (id) {
-          const { error } = await sb.from('clientes').update(payload).eq('id', id);
-          if (error) throw error;
-        } else {
-          const { data, error } = await sb.from('clientes').insert(payload).select().single();
-          if (error) throw error;
-          clienteId = data.id;
-        }
-
-        // Atualiza matriz cliente_obrigacoes
-        const selectedObs = Array.from(document.querySelectorAll('.cm-ob-checkbox:checked')).map(cb => cb.value);
-        const { error: delErr } = await sb.from('cliente_obrigacoes').delete().eq('cliente_id', clienteId);
-        if (delErr) throw delErr;
-
-        if (selectedObs.length > 0) {
-          const rows = selectedObs.map(obId => ({
-            cliente_id: clienteId,
-            obrigacao_id: obId,
-            escritorio_id: state.perfil.escritorio_id
-          }));
-          const { error: insErr } = await sb.from('cliente_obrigacoes').insert(rows);
-          if (insErr) throw insErr;
-        }
-
-        closeModal('client-modal');
-        await carregarDados(false);
-        showToast(id ? 'Cliente atualizado.' : 'Cliente cadastrado.');
-      } catch (err) {
-        console.error(err);
-        showToast('Erro ao salvar cliente: ' + err.message);
+// ... existing code ... -->
       } finally {
         btn.disabled = false;
         btn.textContent = 'Salvar Cliente';
       }
     }
 
+    function openDeleteClientConfirm() {
+      const id = document.getElementById('cm-id').value;
+      const client = state.clientes.find(c => c.id === id);
+      if (!client) return;
+      document.getElementById('dcm-client-name').textContent = client.razao_social;
+      openModal('delete-client-modal');
+    }
+
+    async function confirmDeleteClient() {
+      const id = document.getElementById('cm-id').value;
+      if (!id) return;
+
+      const btn = document.getElementById('btn-confirm-delete-client');
+      btn.disabled = true;
+      btn.textContent = 'Excluindo...';
+
+      try {
+        const { error } = await sb.from('clientes').delete().eq('id', id);
+        if (error) throw error;
+
+        closeModal('delete-client-modal');
+        closeModal('client-modal');
+        await carregarDados(false);
+        showToast('Cliente excluído com sucesso.');
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao excluir cliente: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar Exclusão';
+      }
+    }
+
     // ==================== IMPORTAÇÃO DE CLIENTES VIA CSV ====================
-    function abrirModalImportarCSV() {
-      clientesParaImportar = [];
-      document.getElementById('input-arquivo-csv').value = '';
-      document.getElementById('csv-preview-area').classList.add('hidden');
-      document.getElementById('btn-confirmar-csv').disabled = true;
-      openModal('modal-importar-csv');
-    }
-
-    function fecharModalImportarCSV() {
-      closeModal('modal-importar-csv');
-    }
-
-    function baixarModeloCSV() {
-      const cabecalho = 'razao_social;cnpj;socio_nome;socio_whatsapp;atividade;regime\n';
-      const exemplo = 'Empresa Exemplo Ltda;12.345.678/0001-90;João Silva;5579999999999;Comércio Varejista;Simples Nacional\n';
-      const blob = new Blob(['\uFEFF' + cabecalho + exemplo], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'modelo_clientes_controle_contabil.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function normalizarRegime(valor) {
-      const v = (valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-      if (v.includes('presumido')) return 'Lucro Presumido';
-      if (v.includes('real')) return 'Lucro Real';
-      return 'Simples Nacional';
-    }
-
-    function limparCNPJ(cnpj) {
-      return (cnpj || '').replace(/\D/g, '');
-    }
-
-    async function processarArquivoCSV(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const texto = await file.text();
-      const linhas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim() !== '');
-      if (linhas.length < 2) {
-        showToast('O arquivo precisa ter o cabeçalho e pelo menos um cliente.');
-        return;
-      }
-
-      const separador = linhas[0].includes(';') ? ';' : ',';
-      const cnpjsExistentes = new Set(state.clientes.map(c => limparCNPJ(c.cnpj)).filter(Boolean));
-      const cnpjsNoArquivo = new Set();
-
-      clientesParaImportar = [];
-      const tbody = document.getElementById('csv-preview-tbody');
-      tbody.innerHTML = '';
-
-      let validos = 0;
-      let ignorados = 0;
-
-      for (let i = 1; i < linhas.length; i++) {
-        const cols = linhas[i].split(separador).map(c => c.replace(/^"|"$/g, '').trim());
-        const [razao_social, cnpj, socio_nome, socio_whatsapp, atividade, regimeRaw] = cols;
-
-        if (!razao_social) continue;
-
-        const cnpjLimpo = limparCNPJ(cnpj);
-        const regime = normalizarRegime(regimeRaw);
-        const whatsappLimpo = (socio_whatsapp || '').replace(/\D/g, '');
-        let statusBadge = '<span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-semibold">Novo</span>';
-        let valido = true;
-
-        if (cnpjLimpo && (cnpjsExistentes.has(cnpjLimpo) || cnpjsNoArquivo.has(cnpjLimpo))) {
-          statusBadge = '<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-semibold">Duplicado</span>';
-          valido = false;
-          ignorados++;
-        } else {
-          if (cnpjLimpo) cnpjsNoArquivo.add(cnpjLimpo);
-          validos++;
-          clientesParaImportar.push({
-            razao_social,
-            cnpj: cnpj || '',
-            socio_nome: socio_nome || '',
-            socio_whatsapp: whatsappLimpo,
-            atividade: atividade || '',
-            regime,
-            ativo: true
-          });
-        }
-
-        tbody.innerHTML += `
-          <tr class="${valido ? '' : 'opacity-50 bg-slate-50'}">
-            <td class="px-3 py-2">${statusBadge}</td>
-            <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(razao_social)}</td>
-            <td class="px-3 py-2 text-slate-600">${escapeHtml(cnpj || '—')}</td>
-            <td class="px-3 py-2 text-slate-600">${escapeHtml(socio_nome || '—')} ${whatsappLimpo ? `(${escapeHtml(whatsappLimpo)})` : ''}</td>
-            <td class="px-3 py-2 text-slate-600">${escapeHtml(regime)}</td>
-          </tr>
-        `;
-      }
-
-      document.getElementById('csv-resumo').innerHTML =
-        `Encontrados <strong>${validos}</strong> clientes novos para importar` +
-        (ignorados > 0 ? ` e <strong>${ignorados}</strong> duplicados que serão ignorados.` : '.');
-
-      document.getElementById('csv-preview-area').classList.remove('hidden');
-      document.getElementById('btn-confirmar-csv').disabled = validos === 0;
-    }
-
-    async function confirmarImportacaoCSV() {
-      if (clientesParaImportar.length === 0) return;
-
-      const btn = document.getElementById('btn-confirmar-csv');
-      btn.disabled = true;
-      btn.textContent = 'Importando...';
-
-      try {
-        const payload = clientesParaImportar.map(c => ({
-          ...c,
-          escritorio_id: state.perfil.escritorio_id
-        }));
-
-        const { error } = await sb.from('clientes').insert(payload);
-        if (error) throw error;
-
-        fecharModalImportarCSV();
-        await carregarDados(false);
-        showToast(`${payload.length} clientes importados com sucesso!`);
-      } catch (err) {
-        console.error(err);
-        showToast('Erro ao importar clientes: ' + err.message);
-      } finally {
-        btn.textContent = 'Importar Clientes Válidos';
-        btn.disabled = false;
-      }
-    }
-
-    // ==================== CATÁLOGO (CRUD + PADRÃO) ====================
-    function openObligationModal(obId = null) {
-      const ob = obId ? state.obrigacoes.find(o => o.id === obId) : null;
-      document.getElementById('om-title').textContent = ob ? 'Editar Obrigação' : 'Nova Obrigação';
-      document.getElementById('om-id').value = ob ? ob.id : '';
-      document.getElementById('om-name').value = ob ? ob.nome : '';
-      document.getElementById('om-dept').value = ob ? ob.departamento : 'fiscal';
-      document.getElementById('om-due-day').value = ob ? ob.dia_vencimento : 20;
-      openModal('obligation-modal');
-    }
-
-    async function saveObligation() {
-      const id = document.getElementById('om-id').value;
-      const nome = document.getElementById('om-name').value.trim();
-      const departamento = document.getElementById('om-dept').value;
-      const dia_vencimento = Math.min(Math.max(parseInt(document.getElementById('om-due-day').value, 10) || 1, 1), 31);
-
-      if (!nome) {
-        showToast('Informe o nome da obrigação.');
-        return;
-      }
-
-      const btn = document.getElementById('btn-save-ob');
-      btn.disabled = true;
-      btn.textContent = 'Salvando...';
-
-      try {
-        const payload = {
-          escritorio_id: state.perfil.escritorio_id,
-          nome,
-          departamento,
-          dia_vencimento
-        };
-
-        if (id) {
-          const { error } = await sb.from('obrigacoes').update(payload).eq('id', id);
-          if (error) throw error;
-        } else {
-          const { error } = await sb.from('obrigacoes').insert({ ...payload, ativa: true });
-          if (error) throw error;
-        }
-
-        closeModal('obligation-modal');
-        await carregarDados(false);
-        showToast(id ? 'Obrigação atualizada.' : 'Obrigação cadastrada.');
-      } catch (err) {
-        console.error(err);
-        showToast('Erro ao salvar obrigação: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Salvar Obrigação';
-      }
-    }
-
-    async function toggleObrigacaoAtiva(id, ativa) {
-      try {
-        const { error } = await sb.from('obrigacoes').update({ ativa }).eq('id', id);
-        if (error) throw error;
-        await carregarDados(false);
-        showToast(ativa ? 'Obrigação ativada.' : 'Obrigação desativada.');
-      } catch (err) {
-        showToast('Erro ao atualizar obrigação: ' + err.message);
-      }
-    }
-
-    async function carregarObrigacoesPadrao() {
-      const padrao = [
-        { nome: 'Importação XML Entrada', departamento: 'fiscal', dia_vencimento: 5 },
-        { nome: 'Importação XML Saída', departamento: 'fiscal', dia_vencimento: 5 },
-        { nome: 'Importação XML Serviço', departamento: 'fiscal', dia_vencimento: 5 },
-        { nome: 'Envio Guia DAS / Impostos', departamento: 'fiscal', dia_vencimento: 20 },
-        { nome: 'Recebimento Extratos', departamento: 'contabil', dia_vencimento: 10 },
-        { nome: 'Conciliação Bancária', departamento: 'contabil', dia_vencimento: 25 },
-        { nome: 'Balancete Mensal', departamento: 'contabil', dia_vencimento: 30 },
-        { nome: 'Fechamento de Folha', departamento: 'trabalhista', dia_vencimento: 5 },
-        { nome: 'Envio FGTS / INSS', departamento: 'trabalhista', dia_vencimento: 7 },
-        { nome: 'eSocial / DCTFWeb', departamento: 'trabalhista', dia_vencimento: 15 }
-      ].map(o => ({ ...o, escritorio_id: state.perfil.escritorio_id, ativa: true }));
-
-      try {
-        const { error } = await sb.from('obrigacoes').insert(padrao);
-        if (error) throw error;
-        await carregarDados(false);
-        showToast('Obrigações padrão carregadas!');
-      } catch (err) {
-        showToast('Erro ao carregar obrigações padrão: ' + err.message);
-      }
-    }
-
-    // ==================== NOVA COMPETÊNCIA ====================
-    function openNewCompetenciaModal() {
-      document.getElementById('new-comp-input').value = getCurrentYYYYMM();
-      openModal('competencia-modal');
-    }
-
-    async function createNewCompetencia() {
-      const comp = document.getElementById('new-comp-input').value;
-      if (!comp || !/^\d{4}-\d{2}$/.test(comp)) {
-        showToast('Selecione uma competência válida.');
-        return;
-      }
-
-      const btn = document.getElementById('btn-create-comp');
-      btn.disabled = true;
-      btn.textContent = 'Gerando...';
-
-      try {
-        const rows = [];
-        const activeClients = state.clientes.filter(c => c.ativo);
-        const activeObs = state.obrigacoes.filter(o => o.ativa);
-
-        activeClients.forEach(c => {
-          activeObs.forEach(ob => {
-            if (state.matriz.has(`${c.id}|${ob.id}`)) {
-              rows.push({
-                escritorio_id: state.perfil.escritorio_id,
-                cliente_id: c.id,
-                obrigacao_id: ob.id,
-                competencia: comp,
-                status: 'pendente'
-              });
-            }
-          });
-        });
-
-        if (rows.length > 0) {
-          const { error } = await sb
-            .from('entregas_mensais')
-            .upsert(rows, { onConflict: 'cliente_id,obrigacao_id,competencia', ignoreDuplicates: true });
-          if (error) throw error;
-        }
-
-        state.currentCompetencia = comp;
-        closeModal('competencia-modal');
-        await carregarDados(false);
-        showToast(`Competência ${formatCompBR(comp)} aberta!`);
-      } catch (err) {
-        console.error(err);
-        showToast('Erro ao abrir competência: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Gerar Competência';
-      }
-    }
-
-    // ==================== BOOT ====================
-    window.addEventListener('DOMContentLoaded', () => {
-      checkSession();
-    });
-  </script>
-</body>
-</html>
+// ... existing code ... -->
