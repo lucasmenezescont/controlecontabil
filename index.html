@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle Contábil — Gestão de Rotinas</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-slate-200 selection:text-slate-900">
+
+  <!-- ==================== TELA DE CARREGAMENTO INICIAL ==================== -->
+  <div id="boot-screen" class="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
+    <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm mb-4 shadow-sm">
+      CC
+    </div>
+    <div class="flex items-center gap-2.5 text-sm text-slate-500 font-medium">
+      <svg class="w-4 h-4 animate-spin text-slate-800" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span>Carregando Controle Contábil...</span>
+    </div>
+  </div>
+
+  <!-- ==================== TELA DE LOGIN ==================== -->
+  <div id="login-screen" class="hidden min-h-screen flex items-center justify-center bg-slate-50 p-4">
+    <div class="w-full max-w-md space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <!-- Cabeçalho -->
+        <div class="flex flex-col items-center text-center mb-7">
+          <div class="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-base tracking-tight shadow-sm mb-3">
+            CC
+          </div>
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight">Controle Contábil</h1>
+          <p class="text-sm text-slate-500 mt-1">Acesse o painel gerencial do seu escritório</p>
+        </div>
+
+        <!-- Alerta de Erro no Login -->
+        <div id="login-error" class="hidden mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 leading-relaxed"></div>
+
+        <!-- Formulário de Login -->
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label for="login-email" class="block text-xs font-semibold text-slate-700 mb-1.5">E-mail</label>
+            <input type="email" id="login-email" required autocomplete="email" placeholder="voce@escritorio.com.br"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors">
+          </div>
+
+          <div>
+            <label for="login-password" class="block text-xs font-semibold text-slate-700 mb-1.5">Senha</label>
+            <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors">
+          </div>
+
+          <button type="submit" id="login-submit-btn"
+            class="w-full mt-2 py-2.5 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 active:bg-slate-950 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+            <span id="login-btn-text">Entrar</span>
+            <svg id="login-spinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Toggle Configurar Conexão Supabase -->
+        <div class="mt-6 pt-5 border-t border-slate-100">
+          <button type="button" onclick="toggleSupabaseConfigPanel()"
+            class="w-full flex items-center justify-between text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              Configurar Conexão Supabase
+            </span>
+            <span id="config-status-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500"></span>
+          </button>
+
+          <div id="supabase-config-panel" class="hidden mt-4 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              Cole abaixo a <strong>Project URL</strong> e a <strong>anon public key</strong> do seu projeto no Supabase. Elas ficam salvas apenas neste navegador.
+            </p>
+            <div>
+              <label for="cfg-supabase-url" class="block text-[11px] font-semibold text-slate-600 mb-1">Project URL</label>
+              <input type="url" id="cfg-supabase-url" placeholder="https://seu-projeto.supabase.co"
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 focus:outline-none focus:border-slate-400">
+            </div>
+            <div>
+              <label for="cfg-supabase-key" class="block text-[11px] font-semibold text-slate-600 mb-1">Anon Public Key</label>
+              <input type="text" id="cfg-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 focus:outline-none focus:border-slate-400">
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" onclick="clearSupabaseConfig()" class="text-[11px] font-medium text-slate-400 hover:text-red-600 cursor-pointer">
+                Limpar salvo
+              </button>
+              <button type="button" onclick="saveSupabaseConfig()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer">
+                Salvar Conexão
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-center text-xs text-slate-400">Controle Contábil · Fase 2 (Supabase Cloud)</p>
+    </div>
+  </div>
+
+  <!-- ==================== TELA DE PERFIL NÃO VINCULADO ==================== -->
+  <div id="no-profile-screen" class="hidden min-h-screen flex items-center justify-center bg-slate-50 p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-md w-full text-center space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <h2 class="text-lg font-bold text-slate-900">Usuário sem perfil vinculado</h2>
+      <p class="text-sm text-slate-600 leading-relaxed">
+        Seu login foi autenticado com sucesso, mas ainda não existe um registro para este usuário na tabela <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-xs">perfis</code> vinculando-o a um escritório.
+      </p>
+      <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 text-left">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Seu User UID</p>
+        <p id="no-profile-uid" class="text-xs font-mono text-slate-800 break-all select-all"></p>
+      </div>
+      <button onclick="handleLogout()" class="w-full py-2.5 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
+        Sair e voltar ao Login
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== APLICAÇÃO PRINCIPAL ==================== -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Overlay Mobile -->
+    <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/40 z-30 hidden lg:hidden backdrop-blur-[1px]"></div>
+
+    <!-- Sidebar Esquerda -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shrink-0">
+      <div class="flex flex-col min-h-0 overflow-y-auto">
+        <!-- Logo -->
+        <div class="h-16 px-5 flex items-center justify-between border-b border-slate-100 shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs tracking-tight shadow-xs">
+              CC
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-sm font-bold text-slate-900 leading-tight truncate">Controle Contábil</h1>
+              <p class="text-[11px] text-slate-400 font-medium truncate">Gestão Gerencial</p>
+            </div>
+          </div>
+          <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Navegação -->
+        <nav class="p-3 space-y-1">
+          <p class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Gerencial</p>
+          <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <span>Visão Geral</span>
+          </button>
+
+          <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Departamentos</p>
+          <button onclick="navigate('fiscal')" id="nav-fiscal" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+            <span>Fiscal</span>
+          </button>
+          <button onclick="navigate('contabil')" id="nav-contabil" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Contábil</span>
+          </button>
+          <button onclick="navigate('trabalhista')" id="nav-trabalhista" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Trabalhista</span>
+          </button>
+
+          <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Cadastros</p>
+          <button onclick="navigate('clientes')" id="nav-clientes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            <span>Clientes & Regras</span>
+          </button>
+          <button onclick="navigate('catalogo')" id="nav-catalogo" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Catálogo de Obrigações</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Rodapé da Sidebar: Perfil + Escritório + Logout -->
+      <div class="p-3.5 border-t border-slate-100 bg-slate-50/60 shrink-0">
+        <div class="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p id="sidebar-user-name" class="text-xs font-bold text-slate-900 truncate">—</p>
+              <p id="sidebar-office-name" class="text-[11px] text-slate-500 truncate mt-0.5">—</p>
+            </div>
+            <span id="sidebar-user-role" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+              —
+            </span>
+          </div>
+          <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-medium text-slate-600 bg-slate-50 hover:bg-red-50 hover:text-red-700 border border-slate-200/80 hover:border-red-200 transition-colors cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Sair
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Área Principal -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- Barra Superior Global -->
+      <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 lg:px-8 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Esquerda: Menu Mobile + Título da Seção -->
+          <div class="flex items-center gap-3">
+            <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div>
+              <h2 id="header-section-title" class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Visão Geral</h2>
+            </div>
+          </div>
+
+          <!-- Direita: Competência + Abrir Competência + Atualizar + Realtime -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+              <span class="text-xs font-medium text-slate-500 hidden sm:inline">Competência:</span>
+              <select id="competencia-select" onchange="changeCompetencia(this.value)" class="bg-transparent text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none cursor-pointer">
+                <!-- Preenchido via JS -->
+              </select>
+            </div>
+
+            <button onclick="openCompetenciaModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Abrir Competência</span>
+            </button>
+
+            <button onclick="refreshAllData(true)" id="btn-manual-refresh" title="Atualizar dados agora" class="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer">
+              <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+
+            <div id="realtime-indicator" title="Sincronização em tempo real com Supabase" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-medium text-slate-500">
+              <span id="realtime-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
+              <span id="realtime-label">Conectando</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Conteúdo Principal -->
+      <main id="main-content" class="flex-1 p-4 lg:p-8 max-w-[1600px] w-full mx-auto">
+        <!-- Renderizado dinamicamente -->
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAIS ==================== -->
+
+  <!-- 1. Modal de Status da Obrigação -->
+  <div id="status-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p id="sm-client-name" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate"></p>
+          <h3 id="sm-obligation-name" class="text-base font-bold text-slate-900 mt-0.5"></h3>
+          <p id="sm-due-info" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('status-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-2">Selecione o Status</label>
+          <div id="sm-status-options" class="grid grid-cols-1 gap-2"></div>
+        </div>
+
+        <div>
+          <label for="sm-obs" class="block text-xs font-semibold text-slate-600 mb-1.5">Observação</label>
+          <textarea id="sm-obs" rows="3" placeholder="Ex: Falta extrato do Banco Inter ou notas de serviço..."
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 resize-none"></textarea>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-100 flex items-center gap-2 text-xs text-slate-500">
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span id="sm-audit">Sem alterações registradas</span>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('status-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer">Cancelar</button>
+        <button id="sm-save-btn" onclick="saveStatusModal()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60">Salvar Alteração</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal Inteligente do WhatsApp -->
+  <div id="whatsapp-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-slate-900">Mensagem via WhatsApp</h3>
+            <p id="wm-subtitle" class="text-xs text-slate-500 truncate"></p>
+          </div>
+        </div>
+        <button onclick="closeModal('whatsapp-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-2">
+          <button id="wm-tpl-pendencias" onclick="applyWhatsAppTemplate('pendencias')" class="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer">
+            Cobrar Pendências
+          </button>
+          <button id="wm-tpl-conclusao" onclick="applyWhatsAppTemplate('conclusao')" class="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer">
+            Avisar Conclusão
+          </button>
+        </div>
+
+        <div>
+          <label for="wm-message" class="block text-xs font-semibold text-slate-600 mb-1.5">Mensagem (editável antes do envio)</label>
+          <textarea id="wm-message" rows="7"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"></textarea>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('whatsapp-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer">Fechar</button>
+        <button onclick="openWhatsAppLink()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer">
+          <span>Abrir no WhatsApp</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Modal de Cliente + Matriz de Obrigações -->
+  <div id="client-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <h3 id="cm-title" class="text-base font-bold text-slate-900">Novo Cliente</h3>
+        <button onclick="closeModal('client-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6">
+        <input type="hidden" id="cm-id">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label for="cm-razao" class="block text-xs font-semibold text-slate-600 mb-1">Razão Social *</label>
+            <input type="text" id="cm-razao" placeholder="Ex: Alfa Comércio de Alimentos Ltda"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label for="cm-cnpj" class="block text-xs font-semibold text-slate-600 mb-1">CNPJ</label>
+            <input type="text" id="cm-cnpj" placeholder="00.000.000/0001-00"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label for="cm-atividade" class="block text-xs font-semibold text-slate-600 mb-1">Atividade</label>
+            <input type="text" id="cm-atividade" placeholder="Ex: Comércio Varejista"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label for="cm-socio" class="block text-xs font-semibold text-slate-600 mb-1">Nome do Sócio</label>
+            <input type="text" id="cm-socio" placeholder="Ex: João Silva"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label for="cm-whatsapp" class="block text-xs font-semibold text-slate-600 mb-1">WhatsApp do Sócio (com DDD)</label>
+            <input type="text" id="cm-whatsapp" placeholder="Ex: 79999998888"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label for="cm-regime" class="block text-xs font-semibold text-slate-600 mb-1">Regime Tributário *</label>
+            <select id="cm-regime" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="Simples Nacional">Simples Nacional</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <label class="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 w-full cursor-pointer select-none">
+              <input type="checkbox" id="cm-ativo" checked class="rounded border-slate-300 text-slate-900 focus:ring-slate-900">
+              <span class="text-sm font-medium text-slate-700">Cliente Ativo</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Matriz de Obrigações -->
+        <div class="pt-5 border-t border-slate-100">
+          <div class="mb-3">
+            <h4 class="text-sm font-bold text-slate-900">Matriz de Obrigações Aplicáveis</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Selecione exatamente quais rotinas se aplicam a este cliente. Novas obrigações marcadas serão geradas automaticamente na competência atual.</p>
+          </div>
+          <div id="cm-obligations-matrix" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Preenchido via JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 shrink-0">
+        <button onclick="closeModal('client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer">Cancelar</button>
+        <button id="cm-save-btn" onclick="saveClient()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60">Salvar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal de Obrigação (Catálogo) -->
+  <div id="obligation-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="om-title" class="text-base font-bold text-slate-900">Nova Obrigação</h3>
+        <button onclick="closeModal('obligation-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="om-id">
+        <div>
+          <label for="om-nome" class="block text-xs font-semibold text-slate-600 mb-1">Nome da Obrigação *</label>
+          <input type="text" id="om-nome" placeholder="Ex: Apuração e Envio DAS/Impostos"
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+        </div>
+        <div>
+          <label for="om-departamento" class="block text-xs font-semibold text-slate-600 mb-1">Departamento *</label>
+          <select id="om-departamento" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+            <option value="fiscal">Fiscal</option>
+            <option value="contabil">Contábil</option>
+            <option value="trabalhista">Trabalhista</option>
+          </select>
+        </div>
+        <div>
+          <label for="om-dia" class="block text-xs font-semibold text-slate-600 mb-1">Dia de Vencimento (1 a 31) *</label>
+          <input type="number" id="om-dia" min="1" max="31" value="20"
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          <p class="text-[11px] text-slate-400 mt-1">Calculado no mês seguinte à competência (ex: comp. 11/2026 vence em 12/2026).</p>
+        </div>
+        <label class="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 w-full cursor-pointer select-none">
+          <input type="checkbox" id="om-ativa" checked class="rounded border-slate-300 text-slate-900 focus:ring-slate-900">
+          <span class="text-sm font-medium text-slate-700">Obrigação Ativa</span>
+        </label>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('obligation-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer">Cancelar</button>
+        <button id="om-save-btn" onclick="saveObligation()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60">Salvar Obrigação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Modal Abrir Nova Competência -->
+  <div id="competencia-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900">Abrir Nova Competência</h3>
+        <button onclick="closeModal('competencia-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Selecione o mês/ano da competência. O sistema gerará os registros pendentes para todos os clientes ativos e suas obrigações vinculadas, sem sobrescrever entregas já existentes.
+        </p>
+        <div>
+          <label for="new-comp-month" class="block text-xs font-semibold text-slate-600 mb-1.5">Mês de Referência</label>
+          <input type="month" id="new-comp-month" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-slate-400">
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('competencia-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer">Cancelar</button>
+        <button id="comp-save-btn" onclick="createCompetencia()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60">Gerar Competência</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Notificações -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none max-w-sm">
+    <div id="toast-box" class="bg-slate-900 text-white text-xs sm:text-sm font-medium px-4 py-3 rounded-xl shadow-lg border border-slate-800 flex items-center gap-2.5">
+      <span id="toast-dot" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+      <span id="toast-text"></span>
+    </div>
+  </div>
+
+  <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+  <script>
+    // =========================================================================
+    // CONFIGURAÇÃO SUPABASE (Cole suas chaves aqui ou configure na tela de Login)
+    // =========================================================================
+    const DEFAULT_SUPABASE_URL = 'https://sufsfcryoohwqfoucwqh.supabase.co';
+    const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
+
+    const LS_URL_KEY = 'controle_contabil_sb_url';
+    const LS_ANON_KEY = 'controle_contabil_sb_key';
+
+    let supabaseClient = null;
+    let realtimeChannel = null;
+
+    // =========================================================================
+    // CONSTANTES E CONFIGURAÇÕES DE DOMÍNIO
+    // =========================================================================
+    const DEPARTMENTS = [
+      { key: 'fiscal', label: 'Fiscal' },
+      { key: 'contabil', label: 'Contábil' },
+      { key: 'trabalhista', label: 'Trabalhista' }
+    ];
+
+    const PAGE_TITLES = {
+      dashboard: 'Visão Geral',
+      fiscal: 'Rotinas — Fiscal',
+      contabil: 'Rotinas — Contábil',
+      trabalhista: 'Rotinas — Trabalhista',
+      clientes: 'Clientes & Matriz de Regras',
+      catalogo: 'Catálogo de Obrigações'
+    };
+
+    const STATUS_MAP = {
+      pendente: {
+        label: 'Pendente',
+        pill: 'Pendente',
+        badge: 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/70',
+        dot: 'bg-slate-400',
+        finished: false
+      },
+      aguardando_cliente: {
+        label: 'Aguardando Cliente',
+        pill: 'Aguardando',
+        badge: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
+        dot: 'bg-amber-500',
+        finished: false
+      },
+      em_andamento: {
+        label: 'Em Andamento',
+        pill: 'Andamento',
+        badge: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+        dot: 'bg-blue-500',
+        finished: false
+      },
+      concluido: {
+        label: 'Concluído',
+        pill: 'Concluído',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+        dot: 'bg-emerald-500',
+        finished: true
+      },
+      sem_movimento: {
+        label: 'Sem Movimento',
+        pill: 'S/ Mov.',
+        badge: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
+        dot: 'bg-purple-500',
+        finished: true
+      }
+    };
+
+    const DEFAULT_OBLIGATIONS_SEED = [
+      // Fiscal
+      { nome: 'Importação XML Entrada', departamento: 'fiscal', dia_vencimento: 5, ativa: true },
+      { nome: 'Importação XML Saída', departamento: 'fiscal', dia_vencimento: 5, ativa: true },
+      { nome: 'Importação XML Serviço', departamento: 'fiscal', dia_vencimento: 5, ativa: true },
+      { nome: 'Apuração e Envio DAS/Impostos', departamento: 'fiscal', dia_vencimento: 20, ativa: true },
+      // Contábil
+      { nome: 'Importação Extrato Bancário', departamento: 'contabil', dia_vencimento: 10, ativa: true },
+      { nome: 'Conciliação Contábil', departamento: 'contabil', dia_vencimento: 25, ativa: true },
+      { nome: 'Balancete Mensal', departamento: 'contabil', dia_vencimento: 30, ativa: true },
+      // Trabalhista
+      { nome: 'Fechamento Folha de Pagamento', departamento: 'trabalhista', dia_vencimento: 5, ativa: true },
+      { nome: 'Envio Guias FGTS/INSS', departamento: 'trabalhista', dia_vencimento: 7, ativa: true },
+      { nome: 'eSocial', departamento: 'trabalhista', dia_vencimento: 15, ativa: true }
+    ];
+
+    // =========================================================================
+    // ESTADO GLOBAL DA APLICAÇÃO
+    // =========================================================================
+    const state = {
+      session: null,
+      currentProfile: null, // { id, escritorio_id, nome, cargo, escritorio_nome }
+      currentPage: 'dashboard',
+      currentCompetencia: getCurrentYYYYMM(),
+      availableCompetencias: [getCurrentYYYYMM()],
+      clientes: [],
+      obrigacoes: [],
+      clienteObrigacoes: [], // [{ cliente_id, obrigacao_id, escritorio_id }]
+      entregas: [],          // entregas_mensais da competência selecionada
+      entregasMap: new Map(), // `${cliente_id}|${obrigacao_id}` -> entrega row
+      loadingData: false,
+      filters: {
+        deptSearch: '',
+        deptRegime: 'Todos',
+        deptOnlyPending: false,
+        clientsSearch: '',
+        catalogDept: 'todos'
+      }
+    };
+
+    // Contexto temporário de modais
+    let activeStatusCtx = null;
+    let selectedModalStatus = 'pendente';
+    let activeWhatsAppClientId = null;
+
+    // =========================================================================
+    // UTILITÁRIOS GERAIS
+    // =========================================================================
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getCurrentYYYYMM() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function formatCompetenciaBR(yyyyMm) {
+      if (!yyyyMm || !yyyyMm.includes('-')) return yyyyMm || '';
+      const [y, m] = yyyyMm.split('-');
+      return `${m}/${y}`;
+    }
+
+    function formatDateTimeBR(isoStr) {
+      if (!isoStr) return '—';
+      try {
+        const d = new Date(isoStr);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+      } catch {
+        return '—';
+      }
+    }
+
+    function formatDateBR(dateObj) {
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const yyyy = dateObj.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    /**
+     * Calcula a data de vencimento de uma obrigação:
+     * dia_vencimento no mês SEGUINTE à competência (ex: comp 2026-11 -> vence em 12/2026).
+     */
+    function getDueDateInfo(competenciaYYYYMM, diaVencimento) {
+      const [yStr, mStr] = (competenciaYYYYMM || getCurrentYYYYMM()).split('-');
+      const compYear = parseInt(yStr, 10);
+      const compMonth = parseInt(mStr, 10); // 1-12
+
+      // Mês seguinte (0-indexed no JS Date: compMonth já aponta para o mês seguinte!)
+      const dueYear = compMonth === 12 ? compYear + 1 : compYear;
+      const dueMonthIndex = compMonth === 12 ? 0 : compMonth; // 0 = Jan, 11 = Dez
+      const lastDay = new Date(dueYear, dueMonthIndex + 1, 0).getDate();
+      const clampedDay = Math.min(Math.max(parseInt(diaVencimento, 10) || 1, 1), lastDay);
+
+      const dueDate = new Date(dueYear, dueMonthIndex, clampedDay, 0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.round((dueDate.getTime() - today.getTime()) / 86400000);
+      return {
+        dueDate,
+        formatted: formatDateBR(dueDate),
+        diffDays,
+        isOverdue: diffDays < 0,
+        isNearDue: diffDays >= 0 && diffDays <= 5
+      };
+    }
+
+    function sanitizeWhatsApp(rawPhone) {
+      const digits = (rawPhone || '').replace(/\D/g, '');
+      if (!digits) return '';
+      return digits.length <= 11 ? `55${digits}` : digits;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-text');
+      const dot = document.getElementById('toast-dot');
+      text.textContent = message;
+
+      if (type === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-red-400 shrink-0';
+      } else if (type === 'warning') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 shrink-0';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+      }
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3400);
+    }
+
+    function setScreen(screenId) {
+      ['boot-screen', 'login-screen', 'no-profile-screen', 'app-shell'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    // =========================================================================
+    // CONEXÃO E CONFIGURAÇÃO DO SUPABASE
+    // =========================================================================
+    function getSupabaseCredentials() {
+      const savedUrl = localStorage.getItem(LS_URL_KEY);
+      const savedKey = localStorage.getItem(LS_ANON_KEY);
+      const url = (savedUrl && savedUrl.trim()) || DEFAULT_SUPABASE_URL;
+      const key = (savedKey && savedKey.trim()) || DEFAULT_SUPABASE_ANON_KEY;
+      const configured = Boolean(
+        url && key &&
+        url !== 'SUA_URL_AQUI' &&
+        key !== 'SUA_CHAVE_AQUI' &&
+        url.startsWith('http')
+      );
+      return { url, key, configured };
+    }
+
+    function initSupabaseClient() {
+      const { url, key, configured } = getSupabaseCredentials();
+      updateConfigUI(url, key, configured);
+
+      if (!configured) {
+        supabaseClient = null;
+        return false;
+      }
+      try {
+        supabaseClient = window.supabase.createClient(url, key);
+        return true;
+      } catch (err) {
+        console.error('Erro ao inicializar Supabase:', err);
+        supabaseClient = null;
+        return false;
+      }
+    }
+
+    function updateConfigUI(url, key, configured) {
+      const badge = document.getElementById('config-status-badge');
+      const urlInput = document.getElementById('cfg-supabase-url');
+      const keyInput = document.getElementById('cfg-supabase-key');
+
+      if (urlInput) urlInput.value = url !== 'SUA_URL_AQUI' ? url : '';
+      if (keyInput) keyInput.value = key !== 'SUA_CHAVE_AQUI' ? key : '';
+
+      if (badge) {
+        if (configured) {
+          badge.textContent = 'Configurado';
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+        } else {
+          badge.textContent = 'Pendente';
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200';
+        }
+      }
+    }
+
+    function toggleSupabaseConfigPanel(forceOpen = null) {
+      const panel = document.getElementById('supabase-config-panel');
+      if (forceOpen === true) {
+        panel.classList.remove('hidden');
+      } else if (forceOpen === false) {
+        panel.classList.add('hidden');
+      } else {
+        panel.classList.toggle('hidden');
+      }
+    }
+
+    function saveSupabaseConfig() {
+      const url = document.getElementById('cfg-supabase-url').value.trim();
+      const key = document.getElementById('cfg-supabase-key').value.trim();
+      if (!url.startsWith('https://') || key.length < 20) {
+        showLoginError('Informe uma Project URL válida (https://...) e a Anon Public Key completa.');
+        return;
+      }
+      localStorage.setItem(LS_URL_KEY, url);
+      localStorage.setItem(LS_ANON_KEY, key);
+      hideLoginError();
+      initSupabaseClient();
+      toggleSupabaseConfigPanel(false);
+      showToast('Conexão Supabase salva com sucesso!');
+    }
+
+    function clearSupabaseConfig() {
+      localStorage.removeItem(LS_URL_KEY);
+      localStorage.removeItem(LS_ANON_KEY);
+      initSupabaseClient();
+      showToast('Configuração local removida.', 'warning');
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('login-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideLoginError() {
+      document.getElementById('login-error').classList.add('hidden');
+    }
+
+    // =========================================================================
+    // AUTENTICAÇÃO E PERFIL
+    // =========================================================================
+    async function bootApp() {
+      const ready = initSupabaseClient();
+      if (!ready) {
+        setScreen('login-screen');
+        toggleSupabaseConfigPanel(true);
+        return;
+      }
+
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+
+        if (session && session.user) {
+          state.session = session;
+          await loadProfileAndEnter(session.user);
+        } else {
+          setScreen('login-screen');
+        }
+      } catch (err) {
+        console.error('Erro no boot:', err);
+        setScreen('login-screen');
+        showLoginError('Não foi possível conectar ao Supabase. Verifique sua URL e Chave.');
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      hideLoginError();
+
+      if (!supabaseClient) {
+        const ready = initSupabaseClient();
+        if (!ready) {
+          toggleSupabaseConfigPanel(true);
+          showLoginError('Configure sua Project URL e Anon Key do Supabase antes de entrar.');
+          return;
+        }
+      }
+
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('login-submit-btn');
+      const btnText = document.getElementById('login-btn-text');
+      const spinner = document.getElementById('login-spinner');
+
+      btn.disabled = true;
+      btnText.textContent = 'Entrando...';
+      spinner.classList.remove('hidden');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (error.message && error.message.toLowerCase().includes('invalid login credentials')) {
+            throw new Error('E-mail ou senha incorretos. Verifique seus dados e tente novamente.');
+          }
+          throw error;
+        }
+
+        state.session = data.session;
+        await loadProfileAndEnter(data.user);
+      } catch (err) {
+        console.error('Erro no login:', err);
+        showLoginError(err.message || 'Erro ao realizar login.');
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Entrar';
+        spinner.classList.add('hidden');
+      }
+    }
+
+    async function loadProfileAndEnter(user) {
+      try {
+        const { data: profile, error } = await supabaseClient
+          .from('perfis')
+          .select('*, escritorios(nome, cnpj)')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!profile) {
+          document.getElementById('no-profile-uid').textContent = user.id;
+          setScreen('no-profile-screen');
+          return;
+        }
+
+        state.currentProfile = {
+          id: profile.id,
+          escritorio_id: profile.escritorio_id,
+          nome: profile.nome,
+          cargo: profile.cargo,
+          escritorio_nome: profile.escritorios ? profile.escritorios.nome : 'Meu Escritório'
+        };
+
+        // Preenche rodapé da sidebar
+        document.getElementById('sidebar-user-name').textContent = state.currentProfile.nome;
+        document.getElementById('sidebar-office-name').textContent = state.currentProfile.escritorio_nome;
+        document.getElementById('sidebar-user-role').textContent =
+          state.currentProfile.cargo === 'admin' ? 'Admin' : 'Analista';
+
+        setScreen('app-shell');
+        await refreshAllData(false);
+        subscribeRealtime();
+      } catch (err) {
+        console.error('Erro ao carregar perfil:', err);
+        setScreen('login-screen');
+        showLoginError('Erro ao carregar perfil do usuário: ' + (err.message || 'verifique as permissões no Supabase.'));
+      }
+    }
+
+    async function handleLogout() {
+      unsubscribeRealtime();
+      if (supabaseClient) {
+        try {
+          await supabaseClient.auth.signOut();
+        } catch (err) {
+          console.error('Erro ao sair:', err);
+        }
+      }
+      state.session = null;
+      state.currentProfile = null;
+      state.clientes = [];
+      state.obrigacoes = [];
+      state.clienteObrigacoes = [];
+      state.entregas = [];
+      state.entregasMap.clear();
+      document.getElementById('login-password').value = '';
+      setScreen('login-screen');
+      showToast('Sessão encerrada.');
+    }
+
+    // =========================================================================
+    // CARREGAMENTO DE DADOS E REALTIME
+    // =========================================================================
+    async function refreshAllData(showFeedback = false) {
+      if (!supabaseClient || !state.currentProfile) return;
+      state.loadingData = true;
+      const refreshIcon = document.getElementById('refresh-icon');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+      if (!showFeedback && state.clientes.length === 0 && state.obrigacoes.length === 0) {
+        renderLoadingMain();
+      }
+
+      try {
+        const [clientesRes, obrigacoesRes, matrizRes, compsRes] = await Promise.all([
+          supabaseClient.from('clientes').select('*').order('razao_social', { ascending: true }),
+          supabaseClient.from('obrigacoes').select('*').order('dia_vencimento', { ascending: true }).order('nome', { ascending: true }),
+          supabaseClient.from('cliente_obrigacoes').select('*'),
+          supabaseClient.from('entregas_mensais').select('competencia')
+        ]);
+
+        if (clientesRes.error) throw clientesRes.error;
+        if (obrigacoesRes.error) throw obrigacoesRes.error;
+        if (matrizRes.error) throw matrizRes.error;
+        if (compsRes.error) throw compsRes.error;
+
+        state.clientes = clientesRes.data || [];
+        state.obrigacoes = obrigacoesRes.data || [];
+        state.clienteObrigacoes = matrizRes.data || [];
+
+        // Monta lista única de competências disponíveis + mês atual
+        const compSet = new Set([getCurrentYYYYMM(), state.currentCompetencia]);
+        (compsRes.data || []).forEach(r => {
+          if (r.competencia) compSet.add(r.competencia);
+        });
+        state.availableCompetencias = Array.from(compSet).sort((a, b) => b.localeCompare(a));
+
+        await loadEntregasForCompetencia(state.currentCompetencia);
+
+        if (showFeedback) showToast('Dados atualizados com sucesso.');
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        showToast('Erro ao carregar dados: ' + (err.message || 'falha na conexão'), 'error');
+      } finally {
+        state.loadingData = false;
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        renderAll();
+      }
+    }
+
+    async function loadEntregasForCompetencia(competencia) {
+      const { data, error } = await supabaseClient
+        .from('entregas_mensais')
+        .select('*')
+        .eq('competencia', competencia);
+
+      if (error) throw error;
+      state.entregas = data || [];
+      rebuildEntregasMap();
+    }
+
+    function rebuildEntregasMap() {
+      state.entregasMap.clear();
+      state.entregas.forEach(e => {
+        state.entregasMap.set(`${e.cliente_id}|${e.obrigacao_id}`, e);
+      });
+    }
+
+    function subscribeRealtime() {
+      unsubscribeRealtime();
+      if (!supabaseClient || !state.currentProfile) return;
+
+      const dot = document.getElementById('realtime-dot');
+      const label = document.getElementById('realtime-label');
+
+      realtimeChannel = supabaseClient
+        .channel('entregas_mensais_live')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'entregas_mensais',
+            filter: `escritorio_id=eq.${state.currentProfile.escritorio_id}`
+          },
+          (payload) => {
+            const row = payload.new || payload.old;
+            if (!row) return;
+
+            // Adiciona nova competência ao seletor se necessário
+            if (row.competencia && !state.availableCompetencias.includes(row.competencia)) {
+              state.availableCompetencias.push(row.competencia);
+              state.availableCompetencias.sort((a, b) => b.localeCompare(a));
+              renderCompetenciaSelect();
+            }
+
+            if (row.competencia !== state.currentCompetencia) return;
+
+            if (payload.eventType === 'DELETE') {
+              state.entregas = state.entregas.filter(e => e.id !== payload.old.id);
+            } else {
+              const idx = state.entregas.findIndex(
+                e => e.id === payload.new.id ||
+                     (e.cliente_id === payload.new.cliente_id && e.obrigacao_id === payload.new.obrigacao_id)
+              );
+              if (idx >= 0) {
+                state.entregas[idx] = payload.new;
+              } else {
+                state.entregas.push(payload.new);
+              }
+            }
+
+            rebuildEntregasMap();
+            // Evita perder o foco se o usuário estiver digitando em um campo de busca
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+              renderMainContent();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+            if (label) label.textContent = 'Ao vivo';
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+            if (label) label.textContent = 'Reconectando';
+          }
+        });
+    }
+
+    function unsubscribeRealtime() {
+      if (realtimeChannel && supabaseClient) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
+    }
+
+    // =========================================================================
+    // NAVEGAÇÃO E LAYOUT
+    // =========================================================================
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+    }
+
+    function navigate(page) {
+      state.currentPage = page;
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('sidebar-overlay').classList.add('hidden');
+      renderAll();
+    }
+
+    async function changeCompetencia(comp) {
+      state.currentCompetencia = comp;
+      renderLoadingMain();
+      try {
+        await loadEntregasForCompetencia(comp);
+      } catch (err) {
+        console.error('Erro ao trocar competência:', err);
+        showToast('Erro ao carregar entregas da competência.', 'error');
+      }
+      renderAll();
+    }
+
+    function renderLoadingMain() {
+      document.getElementById('main-content').innerHTML = `
+        <div class="flex items-center justify-center py-24 text-sm text-slate-500 gap-2.5">
+          <svg class="w-4 h-4 animate-spin text-slate-800" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span>Sincronizando dados...</span>
+        </div>
+      `;
+    }
+
+    function renderCompetenciaSelect() {
+      const select = document.getElementById('competencia-select');
+      if (!select) return;
+      select.innerHTML = state.availableCompetencias.map(c =>
+        `<option value="${escapeHtml(c)}" ${c === state.currentCompetencia ? 'selected' : ''}>${escapeHtml(formatCompetenciaBR(c))}</option>`
+      ).join('');
+    }
+
+    function updateNavStyles() {
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.className = 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer';
+      });
+      const active = document.getElementById(`nav-${state.currentPage}`);
+      if (active) {
+        active.className = 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-slate-900 text-white shadow-2xs cursor-pointer';
+      }
+      const titleEl = document.getElementById('header-section-title');
+      if (titleEl) titleEl.textContent = PAGE_TITLES[state.currentPage] || 'Controle Contábil';
+    }
+
+    function renderAll() {
+      updateNavStyles();
+      renderCompetenciaSelect();
+      renderMainContent();
+    }
+
+    function renderMainContent() {
+      const main = document.getElementById('main-content');
+      if (!main) return;
+
+      if (state.currentPage === 'dashboard') {
+        main.innerHTML = renderDashboard();
+      } else if (['fiscal', 'contabil', 'trabalhista'].includes(state.currentPage)) {
+        main.innerHTML = renderDepartmentMatrix(state.currentPage);
+      } else if (state.currentPage === 'clientes') {
+        main.innerHTML = renderClientes();
+      } else if (state.currentPage === 'catalogo') {
+        main.innerHTML = renderCatalogo();
+      }
+    }
+
+    // =========================================================================
+    // HELPERS DE DOMÍNIO (LINKS E STATUS)
+    // =========================================================================
+    function getClientObligationIds(clienteId) {
+      return state.clienteObrigacoes
+        .filter(co => co.cliente_id === clienteId)
+        .map(co => co.obrigacao_id);
+    }
+
+    function getEntrega(clienteId, obrigacaoId) {
+      return state.entregasMap.get(`${clienteId}|${obrigacaoId}`) || null;
+    }
+
+    function getDeptLabel(deptKey) {
+      const found = DEPARTMENTS.find(d => d.key === deptKey);
+      return found ? found.label : deptKey;
+    }
+
+    // =========================================================================
+    // 1. DASHBOARD (VISÃO GERAL)
+    // =========================================================================
+    function renderDashboard() {
+      const activeClients = state.clientes.filter(c => c.ativo);
+      const activeObligations = state.obrigacoes.filter(o => o.ativa);
+      const obById = new Map(activeObligations.map(o => [o.id, o]));
+      const clientById = new Map(activeClients.map(c => [c.id, c]));
+
+      const needsOnboarding = state.obrigacoes.length === 0 || state.clientes.length === 0;
+
+      // Calcula métricas com base nos vínculos ativos (cliente ativo + obrigação ativa)
+      const statusCounts = {
+        pendente: 0,
+        aguardando_cliente: 0,
+        em_andamento: 0,
+        concluido: 0,
+        sem_movimento: 0
+      };
+
+      const deptStats = {
+        fiscal: { total: 0, done: 0 },
+        contabil: { total: 0, done: 0 },
+        trabalhista: { total: 0, done: 0 }
+      };
+
+      const waitingByClient = new Map(); // clienteId -> [{ ob, entrega }]
+      const dueAlerts = []; // [{ client, ob, entrega, dueInfo }]
+
+      state.clienteObrigacoes.forEach(link => {
+        const client = clientById.get(link.cliente_id);
+        const ob = obById.get(link.obrigacao_id);
+        if (!client || !ob) return;
+
+        const entrega = getEntrega(client.id, ob.id);
+        const status = entrega ? entrega.status : 'pendente';
+        const isFinished = STATUS_MAP[status]?.finished || false;
+
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+        deptStats[ob.departamento].total++;
+        if (isFinished) deptStats[ob.departamento].done++;
+
+        if (status === 'aguardando_cliente') {
+          if (!waitingByClient.has(client.id)) waitingByClient.set(client.id, []);
+          waitingByClient.get(client.id).push({ ob, entrega });
+        }
+
+        if (!isFinished) {
+          const dueInfo = getDueDateInfo(state.currentCompetencia, ob.dia_vencimento);
+          if (dueInfo.isOverdue || dueInfo.isNearDue) {
+            dueAlerts.push({ client, ob, entrega, status, dueInfo });
+          }
+        }
+      });
+
+      const totalDeliveries = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+      const finishedDeliveries = statusCounts.concluido + statusCounts.sem_movimento;
+      const overallPct = totalDeliveries > 0 ? Math.round((finishedDeliveries / totalDeliveries) * 100) : 0;
+
+      // Ordena alertas de vencimento: mais atrasadas primeiro
+      dueAlerts.sort((a, b) => a.dueInfo.diffDays - b.dueInfo.diffDays);
+
+      const waitingList = Array.from(waitingByClient.entries()).map(([clientId, items]) => ({
+        client: clientById.get(clientId),
+        items
+      }));
+
+      return `
+        <div class="space-y-6">
+          ${needsOnboarding ? `
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="space-y-1">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                  Primeiros Passos
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Configure seu escritório em segundos</h3>
+                <p class="text-sm text-slate-500">
+                  ${state.obrigacoes.length === 0
+                    ? 'Seu catálogo de obrigações está vazio. Carregue o pacote padrão brasileiro (Fiscal, Contábil e Trabalhista) com 1 clique.'
+                    : 'Obrigações prontas! Agora cadastre seu primeiro cliente na aba Clientes & Regras.'}
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                ${state.obrigacoes.length === 0 ? `
+                  <button id="btn-seed-obligations" onclick="seedDefaultObligations()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Carregar Obrigações Padrão
+                  </button>
+                ` : ''}
+                ${state.clientes.length === 0 ? `
+                  <button onclick="navigate('clientes'); openClientModal();" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
+                    + Cadastrar Primeiro Cliente
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Card de Progresso Geral -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Progresso Geral · Competência ${escapeHtml(formatCompetenciaBR(state.currentCompetencia))}</p>
+                <div class="mt-1.5 flex items-baseline gap-3">
+                  <span class="text-4xl font-bold text-slate-900 tracking-tight">${overallPct}%</span>
+                  <span class="text-sm text-slate-500"><strong>${finishedDeliveries}</strong> de <strong>${totalDeliveries}</strong> entregas finalizadas</span>
+                </div>
+              </div>
+              <div class="text-xs text-slate-500">
+                <strong>${activeClients.length}</strong> clientes ativos · <strong>${activeObligations.length}</strong> obrigações ativas
+              </div>
+            </div>
+
+            <div class="mt-4 w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+              <div class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: ${overallPct}%"></div>
+            </div>
+
+            <!-- Contadores por Status -->
+            <div class="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
+              ${Object.entries(STATUS_MAP).map(([key, cfg]) => `
+                <div class="rounded-xl border border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full ${cfg.dot}"></span>
+                    <span class="text-[11px] font-medium text-slate-500 truncate">${cfg.label}</span>
+                  </div>
+                  <p class="text-lg font-bold text-slate-900 mt-1">${statusCounts[key] || 0}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 3 Cards de Departamento (clicáveis) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${DEPARTMENTS.map(dept => {
+              const st = deptStats[dept.key];
+              const pct = st.total > 0 ? Math.round((st.done / st.total) * 100) : 0;
+              return `
+                <button onclick="navigate('${dept.key}')" class="text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer group">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900">${dept.label}</span>
+                    <span class="text-xs font-semibold text-slate-400 group-hover:text-slate-900 transition-colors flex items-center gap-1">
+                      Abrir
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </span>
+                  </div>
+                  <div class="mt-3 flex items-baseline justify-between">
+                    <span class="text-2xl font-bold text-slate-900">${pct}%</span>
+                    <span class="text-xs text-slate-500">${st.done} / ${st.total} concluídas</span>
+                  </div>
+                  <div class="mt-2.5 w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div class="bg-slate-900 h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Dois Painéis de Ação Lado a Lado -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Painel A: Aguardando Cliente -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <h3 class="text-sm font-bold text-slate-900">Aguardando Cliente</h3>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">${waitingList.length} clientes</span>
+              </div>
+
+              <div class="divide-y divide-slate-100 flex-1 max-h-[400px] overflow-y-auto">
+                ${waitingList.length === 0 ? `
+                  <div class="p-8 text-center text-xs text-slate-400">
+                    Nenhum cliente com pendências aguardando retorno nesta competência.
+                  </div>
+                ` : waitingList.map(({ client, items }) => `
+                  <div class="px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-slate-50/60 transition-colors">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(client.razao_social)}</p>
+                      <p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(client.socio_nome || 'Sócio não informado')}</p>
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        ${items.map(({ ob, entrega }) => `
+                          <button onclick="openStatusModal('${client.id}', '${ob.id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-medium hover:bg-amber-100 cursor-pointer" title="${escapeHtml(entrega?.observacao || '')}">
+                            ${escapeHtml(ob.nome)}
+                          </button>
+                        `).join('')}
+                      </div>
+                    </div>
+                    <button onclick="openWhatsAppModal('${client.id}')" title="Cobrar via WhatsApp" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer">
+                      WhatsApp
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Painel B: Vencidas ou Próximas do Vencimento -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                  <h3 class="text-sm font-bold text-slate-900">Vencidas ou Próximas do Vencimento</h3>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">${dueAlerts.length} itens</span>
+              </div>
+
+              <div class="divide-y divide-slate-100 flex-1 max-h-[400px] overflow-y-auto">
+                ${dueAlerts.length === 0 ? `
+                  <div class="p-8 text-center text-xs text-slate-400">
+                    Nenhuma obrigação vencida ou vencendo nos próximos 5 dias.
+                  </div>
+                ` : dueAlerts.map(({ client, ob, status, dueInfo }) => {
+                  const badgeHtml = dueInfo.isOverdue
+                    ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">Vencida</span>`
+                    : dueInfo.diffDays === 0
+                      ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">Vence hoje</span>`
+                      : `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">Vence em ${dueInfo.diffDays} ${dueInfo.diffDays === 1 ? 'dia' : 'dias'}</span>`;
+
+                  return `
+                    <div onclick="openStatusModal('${client.id}', '${ob.id}')" class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors cursor-pointer">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(client.razao_social)}</p>
+                        <p class="text-xs text-slate-500 mt-0.5 truncate">
+                          ${escapeHtml(ob.nome)} · <span class="text-slate-400">${escapeHtml(getDeptLabel(ob.departamento))} · Venc. ${dueInfo.formatted}</span>
+                        </p>
+                      </div>
+                      <div class="flex flex-col items-end gap-1 shrink-0">
+                        ${badgeHtml}
+                        <span class="text-[10px] font-medium text-slate-400">${STATUS_MAP[status]?.label || 'Pendente'}</span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    async function seedDefaultObligations() {
+      const btn = document.getElementById('btn-seed-obligations');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Carregando...';
+      }
+      try {
+        const rows = DEFAULT_OBLIGATIONS_SEED.map(o => ({
+          ...o,
+          escritorio_id: state.currentProfile.escritorio_id
+        }));
+        const { error } = await supabaseClient.from('obrigacoes').insert(rows);
+        if (error) throw error;
+        showToast('Obrigações padrão carregadas com sucesso!');
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao carregar obrigações padrão:', err);
+        showToast('Erro ao carregar obrigações padrão: ' + err.message, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Carregar Obrigações Padrão';
+        }
+      }
+    }
+
+    // =========================================================================
+    // 2. VISÕES OPERACIONAIS POR DEPARTAMENTO (FISCAL / CONTÁBIL / TRABALHISTA)
+    // =========================================================================
+    function updateDeptFilter(key, value) {
+      state.filters[key] = value;
+      renderMainContent();
+    }
+
+    function renderDepartmentMatrix(deptKey) {
+      const deptObligations = state.obrigacoes.filter(o => o.departamento === deptKey && o.ativa);
+      let clients = state.clientes.filter(c => c.ativo);
+
+      // Filtros
+      if (state.filters.deptSearch.trim()) {
+        const q = state.filters.deptSearch.toLowerCase();
+        clients = clients.filter(c =>
+          (c.razao_social || '').toLowerCase().includes(q) ||
+          (c.cnpj || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (state.filters.deptRegime !== 'Todos') {
+        clients = clients.filter(c => c.regime === state.filters.deptRegime);
+      }
+
+      if (state.filters.deptOnlyPending) {
+        clients = clients.filter(c => {
+          const linkedIds = getClientObligationIds(c.id);
+          return deptObligations.some(ob => {
+            if (!linkedIds.includes(ob.id)) return false;
+            const entrega = getEntrega(c.id, ob.id);
+            const status = entrega ? entrega.status : 'pendente';
+            return !STATUS_MAP[status]?.finished;
+          });
+        });
+      }
+
+      return `
+        <div class="space-y-5">
+          <!-- Barra de Filtros -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-wrap items-center gap-3">
+            <div class="flex-1 min-w-[220px] relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" value="${escapeHtml(state.filters.deptSearch)}" oninput="updateDeptFilter('deptSearch', this.value)"
+                placeholder="Buscar por Razão Social ou CNPJ..."
+                class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+            </div>
+
+            <select onchange="updateDeptFilter('deptRegime', this.value)" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer">
+              <option value="Todos" ${state.filters.deptRegime === 'Todos' ? 'selected' : ''}>Todos os Regimes</option>
+              <option value="Simples Nacional" ${state.filters.deptRegime === 'Simples Nacional' ? 'selected' : ''}>Simples Nacional</option>
+              <option value="Lucro Presumido" ${state.filters.deptRegime === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
+              <option value="Lucro Real" ${state.filters.deptRegime === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+            </select>
+
+            <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50 select-none">
+              <input type="checkbox" ${state.filters.deptOnlyPending ? 'checked' : ''} onchange="updateDeptFilter('deptOnlyPending', this.checked)" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900">
+              <span>Apenas com pendências</span>
+            </label>
+          </div>
+
+          <!-- Tabela Matriz -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            ${deptObligations.length === 0 ? `
+              <div class="p-12 text-center space-y-2">
+                <p class="text-sm font-semibold text-slate-700">Nenhuma obrigação ativa em ${getDeptLabel(deptKey)}</p>
+                <p class="text-xs text-slate-400">Cadastre ou ative obrigações no Catálogo de Obrigações.</p>
+                <button onclick="navigate('catalogo')" class="mt-2 px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer">Ir para Catálogo</button>
+              </div>
+            ` : clients.length === 0 ? `
+              <div class="p-12 text-center space-y-1">
+                <p class="text-sm font-semibold text-slate-700">Nenhum cliente encontrado</p>
+                <p class="text-xs text-slate-400">Ajuste os filtros acima ou cadastre um novo cliente.</p>
+              </div>
+            ` : `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                      <th class="sticky left-0 z-10 bg-slate-50 px-5 py-3.5 text-xs font-bold text-slate-700 min-w-[250px] border-r border-slate-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                        Cliente
+                      </th>
+                      ${deptObligations.map(ob => `
+                        <th class="px-3.5 py-3.5 text-center min-w-[155px]">
+                          <div class="text-xs font-bold text-slate-800 leading-snug">${escapeHtml(ob.nome)}</div>
+                          <div class="text-[11px] font-medium text-slate-400 mt-0.5">Venc. dia ${String(ob.dia_vencimento).padStart(2, '0')}</div>
+                        </th>
+                      `).join('')}
+                      <th class="px-4 py-3.5 text-center text-xs font-bold text-slate-700 w-24">WhatsApp</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    ${clients.map(client => {
+                      const linkedIds = getClientObligationIds(client.id);
+                      return `
+                        <tr class="group hover:bg-slate-50/70 transition-colors">
+                          <td class="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-5 py-3.5 border-r border-slate-100 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.04)]">
+                            <div class="text-sm font-semibold text-slate-900 leading-snug">${escapeHtml(client.razao_social)}</div>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                              <span class="text-[11px] text-slate-400 font-mono">${escapeHtml(client.cnpj || 'Sem CNPJ')}</span>
+                              <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">${escapeHtml(client.regime)}</span>
+                            </div>
+                          </td>
+
+                          ${deptObligations.map(ob => {
+                            if (!linkedIds.includes(ob.id)) {
+                              return `<td class="px-3 py-3.5 text-center text-slate-300 select-none text-sm">—</td>`;
+                            }
+
+                            const entrega = getEntrega(client.id, ob.id);
+                            const status = entrega ? entrega.status : 'pendente';
+                            const cfg = STATUS_MAP[status] || STATUS_MAP.pendente;
+                            const dueInfo = getDueDateInfo(state.currentCompetencia, ob.dia_vencimento);
+                            const showAlertDot = !cfg.finished && (dueInfo.isOverdue || dueInfo.isNearDue);
+                            const alertColor = dueInfo.isOverdue ? 'bg-red-500' : 'bg-amber-400';
+                            const tooltip = entrega && entrega.atualizado_por
+                              ? `Última atualização: ${entrega.atualizado_por} em ${formatDateTimeBR(entrega.atualizado_em)}`
+                              : 'Sem atualização registrada';
+
+                            return `
+                              <td class="px-3 py-3.5 text-center">
+                                <button onclick="openStatusModal('${client.id}', '${ob.id}')" title="${escapeHtml(tooltip)}"
+                                  class="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${cfg.badge}">
+                                  <span class="w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}"></span>
+                                  <span>${cfg.pill}</span>
+                                  ${entrega && entrega.observacao ? `
+                                    <svg class="w-3.5 h-3.5 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                    </svg>
+                                  ` : ''}
+                                  ${showAlertDot ? `<span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${alertColor} ring-2 ring-white" title="${dueInfo.isOverdue ? 'Vencida' : 'Próxima do vencimento'} (${dueInfo.formatted})"></span>` : ''}
+                                </button>
+                              </td>
+                            `;
+                          }).join('')}
+
+                          <td class="px-4 py-3.5 text-center">
+                            <button onclick="openWhatsAppModal('${client.id}')" title="Enviar mensagem via WhatsApp"
+                              class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer">
+                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                            </button>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 3. CLIENTES & MATRIZ DE REGRAS
+    // =========================================================================
+    function updateClientsSearch(val) {
+      state.filters.clientsSearch = val;
+      renderMainContent();
+    }
+
+    function renderClientes() {
+      let list = [...state.clientes];
+      if (state.filters.clientsSearch.trim()) {
+        const q = state.filters.clientsSearch.toLowerCase();
+        list = list.filter(c =>
+          (c.razao_social || '').toLowerCase().includes(q) ||
+          (c.cnpj || '').toLowerCase().includes(q) ||
+          (c.socio_nome || '').toLowerCase().includes(q)
+        );
+      }
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" value="${escapeHtml(state.filters.clientsSearch)}" oninput="updateClientsSearch(this.value)"
+                placeholder="Buscar cliente por Razão Social, CNPJ ou Sócio..."
+                class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-slate-400">
+            </div>
+
+            <button onclick="openClientModal()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer self-start sm:self-auto shadow-2xs">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Novo Cliente
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            ${list.length === 0 ? `
+              <div class="p-12 text-center space-y-2">
+                <p class="text-sm font-semibold text-slate-700">Nenhum cliente cadastrado</p>
+                <p class="text-xs text-slate-400">Clique em "+ Novo Cliente" para adicionar sua primeira empresa e configurar suas obrigações.</p>
+              </div>
+            ` : `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th class="px-5 py-3.5">Razão Social / CNPJ</th>
+                      <th class="px-4 py-3.5">Sócio / WhatsApp</th>
+                      <th class="px-4 py-3.5">Regime</th>
+                      <th class="px-4 py-3.5 text-center">Obrigações</th>
+                      <th class="px-4 py-3.5 text-center">Status</th>
+                      <th class="px-5 py-3.5 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-sm">
+                    ${list.map(c => {
+                      const obCount = getClientObligationIds(c.id).length;
+                      return `
+                        <tr class="hover:bg-slate-50/70 transition-colors ${!c.ativo ? 'opacity-65' : ''}">
+                          <td class="px-5 py-3.5">
+                            <div class="font-semibold text-slate-900">${escapeHtml(c.razao_social)}</div>
+                            <div class="text-xs text-slate-400 font-mono mt-0.5">${escapeHtml(c.cnpj || '—')}</div>
+                          </td>
+                          <td class="px-4 py-3.5">
+                            <div class="text-slate-800 font-medium">${escapeHtml(c.socio_nome || '—')}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">${escapeHtml(c.socio_whatsapp || 'Sem WhatsApp')}</div>
+                          </td>
+                          <td class="px-4 py-3.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">${escapeHtml(c.regime)}</span>
+                          </td>
+                          <td class="px-4 py-3.5 text-center">
+                            <span class="text-xs font-semibold text-slate-700">${obCount}</span>
+                          </td>
+                          <td class="px-4 py-3.5 text-center">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${c.ativo ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}">
+                              <span class="w-1.5 h-1.5 rounded-full ${c.ativo ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+                              ${c.ativo ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </td>
+                          <td class="px-5 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                            <button onclick="openClientModal('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer">
+                              Editar
+                            </button>
+                            <button onclick="toggleClientActive('${c.id}', ${!c.ativo})" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${c.ativo ? 'border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200' : 'border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'}">
+                              ${c.ativo ? 'Desativar' : 'Ativar'}
+                            </button>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 4. CATÁLOGO DE OBRIGAÇÕES
+    // =========================================================================
+    function setCatalogFilter(dept) {
+      state.filters.catalogDept = dept;
+      renderMainContent();
+    }
+
+    function renderCatalogo() {
+      let list = [...state.obrigacoes];
+      if (state.filters.catalogDept !== 'todos') {
+        list = list.filter(o => o.departamento === state.filters.catalogDept);
+      }
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <!-- Filtro por Departamento -->
+            <div class="inline-flex bg-slate-200/70 p-1 rounded-xl self-start">
+              ${[
+                { key: 'todos', label: 'Todos' },
+                ...DEPARTMENTS
+              ].map(d => `
+                <button onclick="setCatalogFilter('${d.key}')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${state.filters.catalogDept === d.key ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}">
+                  ${d.label}
+                </button>
+              `).join('')}
+            </div>
+
+            <button onclick="openObligationModal()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer self-start sm:self-auto shadow-2xs">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Nova Obrigação
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            ${list.length === 0 ? `
+              <div class="p-12 text-center space-y-2">
+                <p class="text-sm font-semibold text-slate-700">Nenhuma obrigação encontrada</p>
+                <p class="text-xs text-slate-400">Adicione uma nova obrigação ou carregue o pacote padrão na Visão Geral.</p>
+              </div>
+            ` : `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th class="px-5 py-3.5">Nome da Obrigação</th>
+                      <th class="px-4 py-3.5">Departamento</th>
+                      <th class="px-4 py-3.5 text-center">Dia de Vencimento</th>
+                      <th class="px-4 py-3.5 text-center">Status</th>
+                      <th class="px-5 py-3.5 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-sm">
+                    ${list.map(ob => `
+                      <tr class="hover:bg-slate-50/70 transition-colors ${!ob.ativa ? 'opacity-65' : ''}">
+                        <td class="px-5 py-3.5 font-semibold text-slate-900">${escapeHtml(ob.nome)}</td>
+                        <td class="px-4 py-3.5">
+                          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">${escapeHtml(getDeptLabel(ob.departamento))}</span>
+                        </td>
+                        <td class="px-4 py-3.5 text-center font-medium text-slate-700">
+                          Dia ${String(ob.dia_vencimento).padStart(2, '0')}
+                        </td>
+                        <td class="px-4 py-3.5 text-center">
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${ob.ativa ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${ob.ativa ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+                            ${ob.ativa ? 'Ativa' : 'Inativa'}
+                          </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                          <button onclick="openObligationModal('${ob.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer">
+                            Editar
+                          </button>
+                          <button onclick="toggleObligationActive('${ob.id}', ${!ob.ativa})" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${ob.ativa ? 'border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200' : 'border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'}">
+                            ${ob.ativa ? 'Desativar' : 'Ativar'}
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // CONTROLE DE MODAIS E AÇÕES SUPABASE
+    // =========================================================================
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    // --- A. Modal de Status ---
+    function openStatusModal(clienteId, obrigacaoId) {
+      const client = state.clientes.find(c => c.id === clienteId);
+      const ob = state.obrigacoes.find(o => o.id === obrigacaoId);
+      if (!client || !ob) return;
+
+      const entrega = getEntrega(clienteId, obrigacaoId);
+      activeStatusCtx = { clienteId, obrigacaoId };
+      selectedModalStatus = entrega ? entrega.status : 'pendente';
+
+      const dueInfo = getDueDateInfo(state.currentCompetencia, ob.dia_vencimento);
+
+      document.getElementById('sm-client-name').textContent = client.razao_social;
+      document.getElementById('sm-obligation-name').textContent = `${ob.nome} (${getDeptLabel(ob.departamento)})`;
+      document.getElementById('sm-due-info').textContent = `Competência ${formatCompetenciaBR(state.currentCompetencia)} · Vencimento em ${dueInfo.formatted}`;
+      document.getElementById('sm-obs').value = entrega ? (entrega.observacao || '') : '';
+      document.getElementById('sm-audit').textContent = entrega && entrega.atualizado_por
+        ? `Última atualização: ${entrega.atualizado_por} em ${formatDateTimeBR(entrega.atualizado_em)}`
+        : 'Nenhuma atualização registrada ainda';
+
+      renderStatusModalOptions();
+      openModal('status-modal');
+    }
+
+    function renderStatusModalOptions() {
+      const container = document.getElementById('sm-status-options');
+      container.innerHTML = Object.entries(STATUS_MAP).map(([key, cfg]) => {
+        const isSelected = selectedModalStatus === key;
+        return `
+          <button type="button" onclick="selectModalStatus('${key}')"
+            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${isSelected ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'}">
+            <span class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full ${cfg.dot}"></span>
+              <span class="text-slate-800">${cfg.label}</span>
+            </span>
+            ${isSelected ? '<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectModalStatus(statusKey) {
+      selectedModalStatus = statusKey;
+      renderStatusModalOptions();
+    }
+
+    async function saveStatusModal() {
+      if (!activeStatusCtx) return;
+      const btn = document.getElementById('sm-save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        const payload = {
+          escritorio_id: state.currentProfile.escritorio_id,
+          cliente_id: activeStatusCtx.clienteId,
+          obrigacao_id: activeStatusCtx.obrigacaoId,
+          competencia: state.currentCompetencia,
+          status: selectedModalStatus,
+          observacao: document.getElementById('sm-obs').value.trim(),
+          atualizado_por: state.currentProfile.nome,
+          atualizado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await supabaseClient
+          .from('entregas_mensais')
+          .upsert(payload, { onConflict: 'cliente_id,obrigacao_id,competencia' })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Atualiza estado local imediatamente
+        const idx = state.entregas.findIndex(
+          e => e.cliente_id === data.cliente_id && e.obrigacao_id === data.obrigacao_id
+        );
+        if (idx >= 0) state.entregas[idx] = data;
+        else state.entregas.push(data);
+        rebuildEntregasMap();
+
+        closeModal('status-modal');
+        renderMainContent();
+        showToast('Status atualizado com sucesso.');
+      } catch (err) {
+        console.error('Erro ao salvar status:', err);
+        showToast('Erro ao salvar status: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Alteração';
+      }
+    }
+
+    // --- B. Modal WhatsApp ---
+    function openWhatsAppModal(clienteId) {
+      const client = state.clientes.find(c => c.id === clienteId);
+      if (!client) return;
+      activeWhatsAppClientId = clienteId;
+      document.getElementById('wm-subtitle').textContent = `${client.socio_nome || 'Sócio'} · ${client.razao_social}`;
+      applyWhatsAppTemplate('pendencias');
+      openModal('whatsapp-modal');
+    }
+
+    function applyWhatsAppTemplate(type) {
+      const client = state.clientes.find(c => c.id === activeWhatsAppClientId);
+      if (!client) return;
+
+      const btnPend = document.getElementById('wm-tpl-pendencias');
+      const btnConc = document.getElementById('wm-tpl-conclusao');
+      const compBR = formatCompetenciaBR(state.currentCompetencia);
+      const socio = client.socio_nome || 'tudo bem';
+
+      if (type === 'pendencias') {
+        btnPend.className = 'px-3 py-2 rounded-xl text-xs font-semibold border border-slate-900 bg-slate-900 text-white cursor-pointer';
+        btnConc.className = 'px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer';
+
+        const linkedIds = getClientObligationIds(client.id);
+        const waitingItems = [];
+
+        linkedIds.forEach(obId => {
+          const ob = state.obrigacoes.find(o => o.id === obId && o.ativa);
+          if (!ob) return;
+          const entrega = getEntrega(client.id, ob.id);
+          if (entrega && entrega.status === 'aguardando_cliente') {
+            const obsPart = entrega.observacao ? ` (${entrega.observacao})` : '';
+            waitingItems.push(`• ${ob.nome}${obsPart}`);
+          }
+        });
+
+        let msg = `Olá ${client.socio_nome ? client.socio_nome + ', tudo bem?' : 'tudo bem?'}\n\nPara concluirmos as rotinas da competência ${compBR} da empresa *${client.razao_social}*, estamos aguardando apenas o envio de:\n\n`;
+        if (waitingItems.length > 0) {
+          msg += waitingItems.join('\n');
+        } else {
+          msg += `• [Nenhuma obrigação marcada como "Aguardando Cliente" no momento]`;
+        }
+        msg += `\n\nAssim que puder nos encaminhar, já finalizamos por aqui. Muito obrigado!`;
+        document.getElementById('wm-message').value = msg;
+      } else {
+        btnConc.className = 'px-3 py-2 rounded-xl text-xs font-semibold border border-slate-900 bg-slate-900 text-white cursor-pointer';
+        btnPend.className = 'px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer';
+
+        const msg = `Olá ${client.socio_nome ? client.socio_nome + ', tudo bem?' : 'tudo bem?'}\n\nPassando para informar que as rotinas da competência ${compBR} da empresa *${client.razao_social}* foram concluídas e enviadas.\n\nQualquer dúvida, estamos à disposição!`;
+        document.getElementById('wm-message').value = msg;
+      }
+    }
+
+    function openWhatsAppLink() {
+      const client = state.clientes.find(c => c.id === activeWhatsAppClientId);
+      if (!client) return;
+      const phone = sanitizeWhatsApp(client.socio_whatsapp);
+      if (!phone) {
+        showToast('Este cliente não possui WhatsApp cadastrado.', 'warning');
+        return;
+      }
+      const msg = document.getElementById('wm-message').value;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+    }
+
+    // --- C. Modal Cliente & Matriz ---
+    function openClientModal(clienteId = null) {
+      const client = clienteId ? state.clientes.find(c => c.id === clienteId) : null;
+      document.getElementById('cm-title').textContent = client ? 'Editar Cliente & Regras' : 'Novo Cliente';
+      document.getElementById('cm-id').value = client ? client.id : '';
+      document.getElementById('cm-razao').value = client ? client.razao_social : '';
+      document.getElementById('cm-cnpj').value = client ? (client.cnpj || '') : '';
+      document.getElementById('cm-atividade').value = client ? (client.atividade || '') : '';
+      document.getElementById('cm-socio').value = client ? (client.socio_nome || '') : '';
+      document.getElementById('cm-whatsapp').value = client ? (client.socio_whatsapp || '') : '';
+      document.getElementById('cm-regime').value = client ? client.regime : 'Simples Nacional';
+      document.getElementById('cm-ativo').checked = client ? Boolean(client.ativo) : true;
+
+      const selectedIds = client ? getClientObligationIds(client.id) : [];
+      const container = document.getElementById('cm-obligations-matrix');
+
+      container.innerHTML = DEPARTMENTS.map(dept => {
+        const list = state.obrigacoes.filter(o => o.departamento === dept.key && o.ativa);
+        return `
+          <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 flex flex-col">
+            <div class="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-200/60">
+              <span class="text-xs font-bold text-slate-800">${dept.label}</span>
+              ${list.length > 0 ? `
+                <button type="button" onclick="toggleDeptCheckboxes('${dept.key}')" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 cursor-pointer">
+                  Marcar/Desmarcar
+                </button>
+              ` : ''}
+            </div>
+            <div class="space-y-2 flex-1">
+              ${list.length === 0 ? `<p class="text-[11px] text-slate-400">Sem obrigações ativas</p>` : list.map(ob => `
+                <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer select-none">
+                  <input type="checkbox" data-dept="${dept.key}" class="cm-ob-checkbox mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                    value="${ob.id}" ${selectedIds.includes(ob.id) ? 'checked' : ''}>
+                  <span class="leading-snug">${escapeHtml(ob.nome)}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      openModal('client-modal');
+    }
+
+    function toggleDeptCheckboxes(deptKey) {
+      const boxes = Array.from(document.querySelectorAll(`.cm-ob-checkbox[data-dept="${deptKey}"]`));
+      const allChecked = boxes.every(b => b.checked);
+      boxes.forEach(b => { b.checked = !allChecked; });
+    }
+
+    async function saveClient() {
+      const id = document.getElementById('cm-id').value;
+      const razao_social = document.getElementById('cm-razao').value.trim();
+      if (!razao_social) {
+        showToast('Informe a Razão Social do cliente.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('cm-save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        const clientPayload = {
+          escritorio_id: state.currentProfile.escritorio_id,
+          razao_social,
+          cnpj: document.getElementById('cm-cnpj').value.trim(),
+          socio_nome: document.getElementById('cm-socio').value.trim(),
+          socio_whatsapp: document.getElementById('cm-whatsapp').value.trim(),
+          atividade: document.getElementById('cm-atividade').value.trim(),
+          regime: document.getElementById('cm-regime').value,
+          ativo: document.getElementById('cm-ativo').checked
+        };
+
+        let savedClientId = id;
+        if (id) {
+          const { error } = await supabaseClient.from('clientes').update(clientPayload).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabaseClient.from('clientes').insert(clientPayload).select().single();
+          if (error) throw error;
+          savedClientId = data.id;
+        }
+
+        // Sincroniza cliente_obrigacoes
+        const newObIds = Array.from(document.querySelectorAll('.cm-ob-checkbox:checked')).map(cb => cb.value);
+        const oldObIds = id ? getClientObligationIds(id) : [];
+
+        const toRemove = oldObIds.filter(obId => !newObIds.includes(obId));
+        const toAdd = newObIds.filter(obId => !oldObIds.includes(obId));
+
+        if (toRemove.length > 0) {
+          const { error } = await supabaseClient
+            .from('cliente_obrigacoes')
+            .delete()
+            .eq('cliente_id', savedClientId)
+            .in('obrigacao_id', toRemove);
+          if (error) throw error;
+        }
+
+        if (toAdd.length > 0) {
+          const linkRows = toAdd.map(obId => ({
+            cliente_id: savedClientId,
+            obrigacao_id: obId,
+            escritorio_id: state.currentProfile.escritorio_id
+          }));
+          const { error: linkErr } = await supabaseClient.from('cliente_obrigacoes').insert(linkRows);
+          if (linkErr) throw linkErr;
+
+          // Cria entregas pendentes na competência selecionada para novas obrigações
+          if (clientPayload.ativo) {
+            const entregaRows = toAdd.map(obId => ({
+              escritorio_id: state.currentProfile.escritorio_id,
+              cliente_id: savedClientId,
+              obrigacao_id: obId,
+              competencia: state.currentCompetencia,
+              status: 'pendente',
+              atualizado_por: state.currentProfile.nome,
+              atualizado_em: new Date().toISOString()
+            }));
+            const { error: entErr } = await supabaseClient
+              .from('entregas_mensais')
+              .upsert(entregaRows, { onConflict: 'cliente_id,obrigacao_id,competencia', ignoreDuplicates: true });
+            if (entErr) throw entErr;
+          }
+        }
+
+        closeModal('client-modal');
+        showToast(id ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.');
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao salvar cliente:', err);
+        showToast('Erro ao salvar cliente: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Cliente';
+      }
+    }
+
+    async function toggleClientActive(clienteId, nextActive) {
+      try {
+        const { error } = await supabaseClient
+          .from('clientes')
+          .update({ ativo: nextActive })
+          .eq('id', clienteId);
+        if (error) throw error;
+        showToast(nextActive ? 'Cliente ativado.' : 'Cliente desativado.');
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao alterar status do cliente:', err);
+        showToast('Erro ao atualizar cliente: ' + err.message, 'error');
+      }
+    }
+
+    // --- D. Modal Catálogo de Obrigações ---
+    function openObligationModal(obId = null) {
+      const ob = obId ? state.obrigacoes.find(o => o.id === obId) : null;
+      document.getElementById('om-title').textContent = ob ? 'Editar Obrigação' : 'Nova Obrigação';
+      document.getElementById('om-id').value = ob ? ob.id : '';
+      document.getElementById('om-nome').value = ob ? ob.nome : '';
+      document.getElementById('om-departamento').value = ob ? ob.departamento : 'fiscal';
+      document.getElementById('om-dia').value = ob ? ob.dia_vencimento : 20;
+      document.getElementById('om-ativa').checked = ob ? Boolean(ob.ativa) : true;
+      openModal('obligation-modal');
+    }
+
+    async function saveObligation() {
+      const id = document.getElementById('om-id').value;
+      const nome = document.getElementById('om-nome').value.trim();
+      const departamento = document.getElementById('om-departamento').value;
+      const dia_vencimento = Math.min(Math.max(parseInt(document.getElementById('om-dia').value, 10) || 1, 1), 31);
+      const ativa = document.getElementById('om-ativa').checked;
+
+      if (!nome) {
+        showToast('Informe o nome da obrigação.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('om-save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        const payload = {
+          escritorio_id: state.currentProfile.escritorio_id,
+          nome,
+          departamento,
+          dia_vencimento,
+          ativa
+        };
+
+        if (id) {
+          const { error } = await supabaseClient.from('obrigacoes').update(payload).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient.from('obrigacoes').insert(payload);
+          if (error) throw error;
+        }
+
+        closeModal('obligation-modal');
+        showToast(id ? 'Obrigação atualizada.' : 'Obrigação cadastrada.');
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao salvar obrigação:', err);
+        showToast('Erro ao salvar obrigação: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Obrigação';
+      }
+    }
+
+    async function toggleObligationActive(obId, nextActive) {
+      try {
+        const { error } = await supabaseClient
+          .from('obrigacoes')
+          .update({ ativa: nextActive })
+          .eq('id', obId);
+        if (error) throw error;
+        showToast(nextActive ? 'Obrigação ativada.' : 'Obrigação desativada.');
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao alterar obrigação:', err);
+        showToast('Erro ao atualizar obrigação: ' + err.message, 'error');
+      }
+    }
+
+    // --- E. Modal Abrir Nova Competência ---
+    function openCompetenciaModal() {
+      document.getElementById('new-comp-month').value = state.currentCompetencia || getCurrentYYYYMM();
+      openModal('competencia-modal');
+    }
+
+    async function createCompetencia() {
+      const comp = document.getElementById('new-comp-month').value;
+      if (!comp || !/^\d{4}-\d{2}$/.test(comp)) {
+        showToast('Selecione um mês/ano válido.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('comp-save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Gerando...';
+
+      try {
+        const activeClientIds = new Set(state.clientes.filter(c => c.ativo).map(c => c.id));
+        const activeObIds = new Set(state.obrigacoes.filter(o => o.ativa).map(o => o.id));
+
+        const rows = [];
+        const nowIso = new Date().toISOString();
+
+        state.clienteObrigacoes.forEach(link => {
+          if (activeClientIds.has(link.cliente_id) && activeObIds.has(link.obrigacao_id)) {
+            rows.push({
+              escritorio_id: state.currentProfile.escritorio_id,
+              cliente_id: link.cliente_id,
+              obrigacao_id: link.obrigacao_id,
+              competencia: comp,
+              status: 'pendente',
+              atualizado_por: state.currentProfile.nome,
+              atualizado_em: nowIso
+            });
+          }
+        });
+
+        if (rows.length > 0) {
+          const { error } = await supabaseClient
+            .from('entregas_mensais')
+            .upsert(rows, { onConflict: 'cliente_id,obrigacao_id,competencia', ignoreDuplicates: true });
+          if (error) throw error;
+        }
+
+        state.currentCompetencia = comp;
+        if (!state.availableCompetencias.includes(comp)) {
+          state.availableCompetencias.push(comp);
+          state.availableCompetencias.sort((a, b) => b.localeCompare(a));
+        }
+
+        closeModal('competencia-modal');
+        showToast(`Competência ${formatCompetenciaBR(comp)} pronta (${rows.length} rotinas verificadas).`);
+        await refreshAllData(false);
+      } catch (err) {
+        console.error('Erro ao abrir competência:', err);
+        showToast('Erro ao abrir competência: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Gerar Competência';
+      }
+    }
+
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      bootApp();
+    });
+  </script>
+</body>
+</html>
