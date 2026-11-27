@@ -129,7 +129,7 @@
             Catálogo de Obrigações
           </button>
 
-          <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Sistema</p>
+          <p id="nav-section-sistema" class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Sistema</p>
           <button onclick="navigate('configuracoes')" id="nav-configuracoes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             Configurações
@@ -346,6 +346,95 @@
             <input type="url" id="cm-drive-url" placeholder="https://drive.google.com/drive/folders/..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
           </div>
         </div>
+
+        <div class="pt-4 border-t border-slate-100">
+          <h4 class="text-sm font-bold text-slate-900 mb-1">Obrigações Aplicáveis</h4>
+          <p class="text-xs text-slate-500 mb-4">Marque apenas as rotinas que pertencem a esta empresa.</p>
+          <div id="cm-obligations-list" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <button id="btn-delete-client" type="button" onclick="openDeleteClientConfirm()"
+            class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer">
+            Excluir Cliente
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
+          <button id="btn-save-client" onclick="saveClient()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 cursor-pointer">Salvar Cliente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4b. Modal Confirmação de Exclusão de Cliente -->
+  <div id="delete-client-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+      <div class="p-6 space-y-3">
+        <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="text-base font-bold text-slate-900">Excluir Cliente</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Tem certeza que deseja excluir <strong id="dcm-client-name" class="text-slate-800"></strong>? Todas as obrigações vinculadas e o histórico de entregas deste cliente serão removidos permanentemente.
+        </p>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('delete-client-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
+        <button id="btn-confirm-delete-client" onclick="confirmDeleteClient()" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 cursor-pointer">Confirmar Exclusão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Modal Importar CSV -->
+  <div id="modal-importar-csv" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Importar Clientes via CSV</h3>
+          <p class="text-xs text-slate-500">Compatível com planilhas salvas em CSV pelo Excel (;) ou Google Sheets (,).</p>
+        </div>
+        <button onclick="fecharModalImportarCSV()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div class="text-xs text-slate-600">
+            <strong>1.</strong> Baixe a planilha modelo, preencha seus clientes e salve como <strong>CSV</strong>.
+          </div>
+          <button onclick="baixarModeloCSV()" class="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer">
+            Baixar Modelo (.csv)
+          </button>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">2. Selecione o arquivo CSV</label>
+          <input type="file" id="input-arquivo-csv" accept=".csv,text/csv" onchange="processarArquivoCSV(event)"
+            class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer border border-slate-200 rounded-xl p-1.5" />
+        </div>
+
+        <!-- Resumo e Prévia -->
+        <div id="csv-preview-area" class="hidden space-y-3">
+          <div id="csv-resumo" class="text-xs p-3.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200"></div>
+
+          <div class="border border-slate-200 rounded-xl overflow-x-auto max-h-64">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 sticky top-0">
+                <tr>
+                  <th class="px-3 py-2.5 font-semibold">Status</th>
+                  <th class="px-3 py-2.5 font-semibold">Razão Social</th>
+                  <th class="px-3 py-2.5 font-semibold">CNPJ</th>
+                  <th class="px-3 py-2.5 font-semibold">Sócio / WhatsApp</th>
+                  <th class="px-3 py-2.5 font-semibold">Regime</th>
+                </tr>
+              </thead>
+              <tbody id="csv-preview-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50 shrink-0">
@@ -381,10 +470,49 @@
             <option value="trabalhista">Trabalhista</option>
           </select>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Dia de Vencimento Padrão (1 a 31) *</label>
-          <input type="number" id="om-due-day" min="1" max="31" value="20" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Periodicidade</label>
+            <select id="om-periodicidade" onchange="handlePeriodicidadeChange(true)" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="mensal">Mensal (todo mês)</option>
+              <option value="trimestral">Trimestral (Mar/Jun/Set/Dez)</option>
+              <option value="anual">Anual (1x por ano)</option>
+            </select>
+          </div>
+          <div id="om-mes-anual-wrap" class="hidden">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Mês na Competência</label>
+            <select id="om-mes-anual" onchange="updateObligationDuePreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="1">Janeiro (01)</option>
+              <option value="2">Fevereiro (02)</option>
+              <option value="3">Março (03)</option>
+              <option value="4">Abril (04)</option>
+              <option value="5">Maio (05)</option>
+              <option value="6" selected>Junho (06)</option>
+              <option value="7">Julho (07)</option>
+              <option value="8">Agosto (08)</option>
+              <option value="9">Setembro (09)</option>
+              <option value="10">Outubro (10)</option>
+              <option value="11">Novembro (11)</option>
+              <option value="12">Dezembro (12)</option>
+            </select>
+          </div>
         </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Dia de Vencimento (1 a 31) *</label>
+            <input type="number" id="om-due-day" min="1" max="31" value="20" oninput="updateObligationDuePreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-slate-400">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Mês de Vencimento</label>
+            <select id="om-offset" onchange="updateObligationDuePreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400">
+              <option value="1">M+1 (Mês seguinte)</option>
+              <option value="0">M+0 (Mesmo mês)</option>
+              <option value="2">M+2 (2 meses depois)</option>
+              <option value="3">M+3 (3 meses depois)</option>
+            </select>
+          </div>
+        </div>
+        <div id="om-due-example" class="text-[11px] text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 leading-relaxed"></div>
       </div>
       <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
         <button onclick="closeModal('obligation-modal')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">Cancelar</button>
@@ -426,11 +554,11 @@
     // CONFIGURAÇÃO DO SUPABASE
     // Cole sua Project URL e Anon Public Key abaixo
     // ==========================================
-    const DEFAULT_SUPABASE_URL = 'https://sufsfcryoohwqfoucwqh.supabase.co';
-    const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
+    const DEFAULT_SUPABASE_URL = '';
+    const DEFAULT_SUPABASE_ANON_KEY = '';
 
-    const LS_URL_KEY = 'https://sufsfcryoohwqfoucwqh.supabase.co';
-    const LS_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
+    const LS_URL_KEY = 'cc_supabase_url';
+    const LS_ANON_KEY = 'cc_supabase_anon_key';
 
     let sb = null;
     let realtimeChannel = null;
@@ -476,17 +604,17 @@
     };
 
     const DEFAULT_OBLIGATIONS = [
-      { nome: 'Importação XML Entrada', departamento: 'fiscal', dia_vencimento: 10 },
-      { nome: 'Importação XML Saída', departamento: 'fiscal', dia_vencimento: 10 },
-      { nome: 'Importação XML Serviço', departamento: 'fiscal', dia_vencimento: 12 },
-      { nome: 'Envio Guia DAS / Impostos', departamento: 'fiscal', dia_vencimento: 20 },
-      { nome: 'Conciliação Bancária', departamento: 'contabil', dia_vencimento: 15 },
-      { nome: 'Fechamento Balancete', departamento: 'contabil', dia_vencimento: 25 },
-      { nome: 'Folha de Pagamento', departamento: 'trabalhista', dia_vencimento: 5 },
-      { nome: 'Envio FGTS / INSS', departamento: 'trabalhista', dia_vencimento: 20 }
+      { nome: 'Importação XML Entrada', departamento: 'fiscal', dia_vencimento: 10, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Importação XML Saída', departamento: 'fiscal', dia_vencimento: 10, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Importação XML Serviço', departamento: 'fiscal', dia_vencimento: 12, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Envio Guia DAS / Impostos', departamento: 'fiscal', dia_vencimento: 20, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Conciliação Bancária', departamento: 'contabil', dia_vencimento: 15, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Fechamento Balancete', departamento: 'contabil', dia_vencimento: 25, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Folha de Pagamento', departamento: 'trabalhista', dia_vencimento: 5, periodicidade: 'mensal', mes_vencimento_offset: 1 },
+      { nome: 'Envio FGTS / INSS', departamento: 'trabalhista', dia_vencimento: 20, periodicidade: 'mensal', mes_vencimento_offset: 1 }
     ];
 
-    // ==================== ESTADO GLOBAL ====================
+    const MESES_CURTOS = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     function getCurrentYearMonth() {
       const now = new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -654,7 +782,8 @@
 
         renderSidebarBrand();
         document.getElementById('sidebar-user-name').textContent = state.perfil.nome;
-        document.getElementById('sidebar-user-role').textContent = state.perfil.cargo;
+        document.getElementById('sidebar-user-role').textContent = state.perfil.cargo === 'admin' ? 'Administrador' : 'Analista';
+        applyRolePermissions();
 
         showAppScreen();
         await carregarDados(false);
@@ -776,8 +905,27 @@
     }
 
     // ==================== NAVEGAÇÃO E RENDER PRINCIPAL ====================
+    function isAdmin() {
+      return state.perfil?.cargo === 'admin';
+    }
+
+    function applyRolePermissions() {
+      const admin = isAdmin();
+      const navCat = document.getElementById('nav-catalogo');
+      const navSys = document.getElementById('nav-section-sistema');
+      const navCfg = document.getElementById('nav-configuracoes');
+      if (navCat) navCat.classList.toggle('hidden', !admin);
+      if (navSys) navSys.classList.toggle('hidden', !admin);
+      if (navCfg) navCfg.classList.toggle('hidden', !admin);
+    }
+
     function navigate(page) {
-      state.currentPage = page;
+      if (!isAdmin() && (page === 'catalogo' || page === 'configuracoes')) {
+        showToast('Acesso restrito a administradores.');
+        state.currentPage = 'dashboard';
+      } else {
+        state.currentPage = page;
+      }
       closeMobileSidebar();
       renderAll();
     }
@@ -829,9 +977,15 @@
     }
 
     function renderAll() {
+      applyRolePermissions();
       updateNavStyles();
       renderCompetenciaSelect();
       const main = document.getElementById('main-content');
+
+      if (!isAdmin() && (state.currentPage === 'catalogo' || state.currentPage === 'configuracoes')) {
+        state.currentPage = 'dashboard';
+        updateNavStyles();
+      }
 
       if (state.currentPage === 'dashboard') {
         main.innerHTML = renderDashboard();
@@ -896,26 +1050,55 @@
       return state.matriz.some(m => m.cliente_id === clienteId && m.obrigacao_id === obrigacaoId);
     }
 
-    function getDueDateForObligation(competencia, diaVencimento) {
+    function obrigacaoAplicaNaCompetencia(ob, competencia) {
+      const per = ob.periodicidade || 'mensal';
+      if (per === 'mensal') return true;
+      const mes = parseInt((competencia || '').split('-')[1], 10);
+      if (!mes) return true;
+      if (per === 'trimestral') return [3, 6, 9, 12].includes(mes);
+      if (per === 'anual') return mes === (parseInt(ob.mes_anual, 10) || 12);
+      return true;
+    }
+
+    function getDueDateForObligation(competencia, diaVencimento, offset = 1) {
       const [anoStr, mesStr] = competencia.split('-');
       const ano = parseInt(anoStr, 10);
       const mes = parseInt(mesStr, 10); // 1..12
-      // Último dia do mês
-      const lastDay = new Date(ano, mes, 0).getDate();
+      const off = (offset === null || offset === undefined || Number.isNaN(Number(offset))) ? 1 : parseInt(offset, 10);
+      const base = new Date(ano, (mes - 1) + off, 1);
+      const targetYear = base.getFullYear();
+      const targetMonth = base.getMonth(); // 0..11
+      const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
       const dia = Math.min(Math.max(1, parseInt(diaVencimento || 20, 10)), lastDay);
-      return new Date(ano, mes - 1, dia, 23, 59, 59);
+      return new Date(targetYear, targetMonth, dia, 23, 59, 59);
     }
 
-    function getDueStatus(competencia, diaVencimento, statusKey) {
-      if (STATUS_CONFIG[statusKey]?.resolved) return { state: 'ok', diffDays: 999 };
+    function getDueStatus(competencia, ob, statusKey) {
+      const diaVenc = typeof ob === 'object' ? ob.dia_vencimento : ob;
+      const offset = typeof ob === 'object' ? (ob.mes_vencimento_offset ?? 1) : 1;
+      const due = getDueDateForObligation(competencia, diaVenc, offset);
+      if (STATUS_CONFIG[statusKey]?.resolved) return { state: 'ok', diffDays: 999, due };
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const due = getDueDateForObligation(competencia, diaVencimento);
-      due.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+      const dueZero = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const diffDays = Math.round((dueZero - today) / (1000 * 60 * 60 * 24));
       if (diffDays < 0) return { state: 'overdue', diffDays, due };
       if (diffDays <= 3) return { state: 'soon', diffDays, due };
       return { state: 'normal', diffDays, due };
+    }
+
+    function formatDateShortBR(dateObj) {
+      if (!dateObj || isNaN(dateObj.getTime())) return '—';
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      return `${d}/${m}`;
+    }
+
+    function formatDateBR(dateObj) {
+      if (!dateObj || isNaN(dateObj.getTime())) return '—';
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      return `${d}/${m}/${dateObj.getFullYear()}`;
     }
 
     function formatCompetencia(comp) {
@@ -957,7 +1140,7 @@
     // ==================== 1. DASHBOARD (VISÃO GERAL) ====================
     function renderDashboard() {
       const activeClients = state.clientes.filter(c => c.ativo);
-      const activeObligations = state.obrigacoes.filter(o => o.ativa);
+      const activeObligations = state.obrigacoes.filter(o => o.ativa && obrigacaoAplicaNaCompetencia(o, state.competencia));
 
       let totalTasks = 0;
       let resolvedTasks = 0;
@@ -990,7 +1173,7 @@
               waitingClientTasks++;
               waitingList.push({ client, ob, obs: entrega?.observacao || '' });
             }
-            const dueInfo = getDueStatus(state.competencia, ob.dia_vencimento, st);
+            const dueInfo = getDueStatus(state.competencia, ob, st);
             if (dueInfo.state === 'overdue') {
               overdueTasks++;
               urgentList.push({ client, ob, st, dueInfo });
@@ -1011,7 +1194,7 @@
               <h2 class="text-xl font-bold text-slate-900">Visão Geral · ${formatCompetencia(state.competencia)}</h2>
               <p class="text-sm text-slate-500">Acompanhamento em tempo real das rotinas do escritório.</p>
             </div>
-            ${state.obrigacoes.length === 0 ? `
+            ${isAdmin() && state.obrigacoes.length === 0 ? `
               <button onclick="carregarObrigacoesPadrao()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer">
                 Carregar Obrigações Padrão
               </button>
@@ -1128,7 +1311,7 @@
                     <div onclick="openStatusModal('${item.client.id}', '${item.ob.id}')" class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer">
                       <div class="min-w-0">
                         <p class="text-sm font-semibold text-slate-800 truncate">${escapeHtml(item.client.razao_social)}</p>
-                        <p class="text-xs text-slate-500 truncate">${escapeHtml(item.ob.nome)} · Dia ${String(item.ob.dia_vencimento).padStart(2, '0')}</p>
+                        <p class="text-xs text-slate-500 truncate">${escapeHtml(item.ob.nome)} · Venc. ${formatDateShortBR(item.dueInfo.due)}</p>
                       </div>
                       <span class="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                         ${badgeTxt}
@@ -1145,7 +1328,7 @@
 
     // ==================== 2. ROTINAS POR DEPARTAMENTO ====================
     function renderRotinasDept(dept) {
-      const obsDept = state.obrigacoes.filter(o => o.departamento === dept && o.ativa);
+      const obsDept = state.obrigacoes.filter(o => o.departamento === dept && o.ativa && obrigacaoAplicaNaCompetencia(o, state.competencia));
       const term = state.filters.search.toLowerCase();
 
       const filteredClients = state.clientes.filter(c => {
@@ -1205,12 +1388,16 @@
                   <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
                       <th class="px-5 py-3.5 font-semibold sticky left-0 bg-slate-50 z-10 min-w-[220px]">Cliente</th>
-                      ${obsDept.map(ob => `
-                        <th class="px-4 py-3.5 font-semibold text-center min-w-[150px]">
-                          <div class="text-slate-700 normal-case text-xs font-bold">${escapeHtml(ob.nome)}</div>
-                          <div class="text-[10px] font-medium text-slate-400 mt-0.5">Dia ${String(ob.dia_vencimento).padStart(2, '0')}</div>
-                        </th>
-                      `).join('')}
+                      ${obsDept.map(ob => {
+                        const dueDate = getDueDateForObligation(state.competencia, ob.dia_vencimento, ob.mes_vencimento_offset ?? 1);
+                        const perTag = ob.periodicidade === 'trimestral' ? ' · Trim.' : (ob.periodicidade === 'anual' ? ' · Anual' : '');
+                        return `
+                          <th class="px-4 py-3.5 font-semibold text-center min-w-[150px]">
+                            <div class="text-slate-700 normal-case text-xs font-bold">${escapeHtml(ob.nome)}</div>
+                            <div class="text-[10px] font-medium text-slate-400 mt-0.5">Venc. ${formatDateShortBR(dueDate)}${perTag}</div>
+                          </th>
+                        `;
+                      }).join('')}
                       <th class="px-4 py-3.5 font-semibold text-center w-20">WhatsApp</th>
                     </tr>
                   </thead>
@@ -1234,7 +1421,7 @@
                           const ent = getEntrega(client.id, ob.id);
                           const st = ent ? ent.status : 'pendente';
                           const cfg = STATUS_CONFIG[st] || STATUS_CONFIG.pendente;
-                          const dueInfo = getDueStatus(state.competencia, ob.dia_vencimento, st);
+                          const dueInfo = getDueStatus(state.competencia, ob, st);
                           const isOverdue = dueInfo.state === 'overdue';
                           const tooltip = ent && ent.atualizado_por
                             ? `${cfg.label} por ${ent.atualizado_por} em ${formatDateTimeBR(ent.atualizado_em)}`
@@ -1341,31 +1528,32 @@
                           <div class="text-xs text-slate-400">${escapeHtml(c.cnpj || 'Sem CNPJ')} ${c.atividade ? `· ${escapeHtml(c.atividade)}` : ''}</div>
                         </td>
                         <td class="px-5 py-3.5">
-                          <div class="text-slate-800 font-medium">${escapeHtml(c.socio_nome || '—')}</div>
-                          <div class="text-xs text-slate-400">${escapeHtml(c.socio_whatsapp || 'Sem WhatsApp')}</div>
-                        </td>
-                        <td class="px-5 py-3.5 text-slate-600 text-xs font-medium">${escapeHtml(c.regime)}</td>
-                        <td class="px-5 py-3.5 text-center">
-                          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">${qtdRotinas}</span>
-                        </td>
-                        <td class="px-5 py-3.5 text-center">
-                          <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${c.ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
-                            ${c.ativo ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </td>
-                        <td class="px-5 py-3.5 text-right">
-                          <div class="inline-flex items-center justify-end gap-2">
-                            ${normalizeExternalUrl(c.drive_url) ? `
-                              <a href="${escapeHtml(normalizeExternalUrl(c.drive_url))}" target="_blank" rel="noopener noreferrer" title="Abrir pasta no Google Drive"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-semibold hover:bg-blue-100 transition-colors">
-                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-                                Drive
-                              </a>
-                            ` : ''}
-                            <button onclick="openClientModal('${c.id}')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer">
-                              Editar / Regras
+                    ${list.length === 0 ? `<p class="p-6 text-xs text-slate-400 text-center">Nenhuma obrigação cadastrada.</p>` : list.map(ob => {
+                      const per = ob.periodicidade || 'mensal';
+                      const off = ob.mes_vencimento_offset ?? 1;
+                      const perLabel = per === 'trimestral'
+                        ? 'Trimestral'
+                        : (per === 'anual' ? `Anual (${MESES_CURTOS[ob.mes_anual || 12]})` : 'Mensal');
+                      return `
+                        <div class="px-5 py-3.5 flex items-center justify-between gap-2 ${ob.ativa ? '' : 'opacity-50 bg-slate-50'}">
+                          <div>
+                            <p class="text-sm font-medium text-slate-800">${escapeHtml(ob.nome)}</p>
+                            <p class="text-xs text-slate-400">${perLabel} · Dia ${String(ob.dia_vencimento).padStart(2, '0')} (M+${off}) · ${ob.ativa ? 'Ativa' : 'Inativa'}</p>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <button onclick="toggleObrigacaoAtiva('${ob.id}', ${!ob.ativa})" title="${ob.ativa ? 'Desativar' : 'Ativar'}"
+                              class="px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">
+                              ${ob.ativa ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button onclick="openObligationModal('${ob.id}')" title="Editar"
+                              class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
                           </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
                         </td>
                       </tr>
                     `;
@@ -1537,6 +1725,10 @@
     }
 
     async function saveOfficeConfig() {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem alterar as configurações.');
+        return;
+      }
       const nome = document.getElementById('cfg-office-name').value.trim();
       const cnpj = document.getElementById('cfg-office-cnpj').value.trim();
       const logo_url = document.getElementById('cfg-office-logo').value.trim();
@@ -1585,9 +1777,9 @@
       const currentStatus = ent ? ent.status : 'pendente';
 
       state.activeStatusCtx = { clienteId, obrigacaoId, selectedStatus: currentStatus };
-
+      const dueDate = getDueDateForObligation(state.competencia, ob.dia_vencimento, ob.mes_vencimento_offset ?? 1);
       document.getElementById('sm-client-name').textContent = client.razao_social;
-      document.getElementById('sm-obligation-name').textContent = `${ob.nome} · Dia ${String(ob.dia_vencimento).padStart(2, '0')}`;
+      document.getElementById('sm-obligation-name').textContent = `${ob.nome} · Venc. ${formatDateBR(dueDate)}`;
       document.getElementById('sm-obs').value = ent?.observacao || '';
 
       const driveContainer = document.getElementById('sm-drive-container');
@@ -1700,7 +1892,7 @@
       const socio = client.socio_nome || 'tudo bem';
 
       if (type === 'pendencias') {
-        const linkedObs = state.obrigacoes.filter(o => o.ativa && clienteTemObrigacao(client.id, o.id));
+        const linkedObs = state.obrigacoes.filter(o => o.ativa && obrigacaoAplicaNaCompetencia(o, state.competencia) && clienteTemObrigacao(client.id, o.id));
         const waiting = linkedObs.filter(o => getEntrega(client.id, o.id)?.status === 'aguardando_cliente');
         const list = waiting.length > 0
           ? waiting
@@ -1749,7 +1941,7 @@
       document.getElementById('cm-drive-url').value = client ? (client.drive_url || '') : '';
 
       const delBtn = document.getElementById('btn-delete-client');
-      if (delBtn) delBtn.classList.toggle('hidden', !client);
+      if (delBtn) delBtn.classList.toggle('hidden', !client || !isAdmin());
 
       const container = document.getElementById('cm-obligations-list');
       const activeObs = state.obrigacoes.filter(o => o.ativa);
@@ -1839,6 +2031,10 @@
     }
 
     function openDeleteClientConfirm() {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem excluir clientes.');
+        return;
+      }
       const id = document.getElementById('cm-id').value;
       const client = state.clientes.find(c => c.id === id);
       if (!client) return;
@@ -1847,6 +2043,10 @@
     }
 
     async function confirmDeleteClient() {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem excluir clientes.');
+        return;
+      }
       const id = document.getElementById('cm-id').value;
       if (!id) return;
 
@@ -2015,20 +2215,76 @@
 
     // ==================== CATÁLOGO DE OBRIGAÇÕES (CRUD) ====================
     function openObligationModal(obId = null) {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem gerenciar o catálogo.');
+        return;
+      }
       const ob = obId ? state.obrigacoes.find(o => o.id === obId) : null;
       document.getElementById('om-title').textContent = ob ? 'Editar Obrigação' : 'Nova Obrigação';
       document.getElementById('om-id').value = ob ? ob.id : '';
       document.getElementById('om-name').value = ob ? ob.nome : '';
       document.getElementById('om-dept').value = ob ? ob.departamento : 'fiscal';
       document.getElementById('om-due-day').value = ob ? ob.dia_vencimento : 20;
+      document.getElementById('om-periodicidade').value = ob ? (ob.periodicidade || 'mensal') : 'mensal';
+      document.getElementById('om-mes-anual').value = ob && ob.mes_anual ? String(ob.mes_anual) : '6';
+      document.getElementById('om-offset').value = ob ? String(ob.mes_vencimento_offset ?? 1) : '1';
+      handlePeriodicidadeChange(false);
       openModal('obligation-modal');
     }
 
+    function handlePeriodicidadeChange(isUserInteraction = false) {
+      const per = document.getElementById('om-periodicidade').value;
+      const mesWrap = document.getElementById('om-mes-anual-wrap');
+      const offsetEl = document.getElementById('om-offset');
+      const isNew = !document.getElementById('om-id').value;
+
+      if (mesWrap) mesWrap.classList.toggle('hidden', per !== 'anual');
+
+      // Sugestão inteligente ao criar nova obrigação anual: M+0 (vence no mês em que aparece)
+      if (isUserInteraction && isNew && offsetEl) {
+        offsetEl.value = per === 'anual' ? '0' : '1';
+      }
+      updateObligationDuePreview();
+    }
+
+    function updateObligationDuePreview() {
+      const el = document.getElementById('om-due-example');
+      if (!el) return;
+      const per = document.getElementById('om-periodicidade').value;
+      const dia = Math.min(31, Math.max(1, parseInt(document.getElementById('om-due-day').value, 10) || 20));
+      const offset = parseInt(document.getElementById('om-offset').value, 10) || 0;
+      const anoAtual = new Date().getFullYear();
+
+      let sampleComp = state.competencia;
+      if (per === 'anual') {
+        const mesAnual = String(parseInt(document.getElementById('om-mes-anual').value, 10) || 6).padStart(2, '0');
+        sampleComp = `${anoAtual}-${mesAnual}`;
+      } else if (per === 'trimestral') {
+        sampleComp = `${anoAtual}-03`;
+      }
+
+      const dueDate = getDueDateForObligation(sampleComp, dia, offset);
+      if (per === 'anual') {
+        el.innerHTML = `<strong>Exemplo:</strong> aparece na competência <strong>${formatCompetencia(sampleComp)}</strong> e vence em <strong>${formatDateBR(dueDate)}</strong>.`;
+      } else if (per === 'trimestral') {
+        el.innerHTML = `<strong>Exemplo:</strong> aparece em Mar, Jun, Set e Dez. Na competência <strong>${formatCompetencia(sampleComp)}</strong>, vence em <strong>${formatDateBR(dueDate)}</strong>.`;
+      } else {
+        el.innerHTML = `<strong>Exemplo:</strong> na competência <strong>${formatCompetencia(sampleComp)}</strong>, vence em <strong>${formatDateBR(dueDate)}</strong>.`;
+      }
+    }
+
     async function saveObligation() {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem gerenciar o catálogo.');
+        return;
+      }
       const id = document.getElementById('om-id').value;
       const nome = document.getElementById('om-name').value.trim();
       const departamento = document.getElementById('om-dept').value;
       const dia_vencimento = Math.min(31, Math.max(1, parseInt(document.getElementById('om-due-day').value, 10) || 20));
+      const periodicidade = document.getElementById('om-periodicidade').value || 'mensal';
+      const mes_anual = periodicidade === 'anual' ? (parseInt(document.getElementById('om-mes-anual').value, 10) || 6) : null;
+      const mes_vencimento_offset = parseInt(document.getElementById('om-offset').value, 10);
 
       if (!nome) {
         showToast('Informe o nome da obrigação.');
@@ -2040,10 +2296,19 @@
       btn.textContent = 'Salvando...';
 
       try {
+        const fields = {
+          nome,
+          departamento,
+          dia_vencimento,
+          periodicidade,
+          mes_anual,
+          mes_vencimento_offset: Number.isNaN(mes_vencimento_offset) ? 1 : mes_vencimento_offset
+        };
+
         if (id) {
           const { error } = await sb
             .from('obrigacoes')
-            .update({ nome, departamento, dia_vencimento })
+            .update(fields)
             .eq('id', id);
           if (error) throw error;
         } else {
@@ -2051,9 +2316,7 @@
             .from('obrigacoes')
             .insert({
               escritorio_id: state.perfil.escritorio_id,
-              nome,
-              departamento,
-              dia_vencimento,
+              ...fields,
               ativa: true
             });
           if (error) throw error;
@@ -2072,6 +2335,10 @@
     }
 
     async function toggleObrigacaoAtiva(id, ativa) {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem gerenciar o catálogo.');
+        return;
+      }
       try {
         const { error } = await sb.from('obrigacoes').update({ ativa }).eq('id', id);
         if (error) throw error;
@@ -2083,6 +2350,10 @@
     }
 
     async function carregarObrigacoesPadrao() {
+      if (!isAdmin()) {
+        showToast('Apenas administradores podem carregar obrigações padrão.');
+        return;
+      }
       try {
         const rows = DEFAULT_OBLIGATIONS.map(o => ({
           ...o,
@@ -2121,7 +2392,11 @@
 
       try {
         const activeClientIds = new Set(state.clientes.filter(c => c.ativo).map(c => c.id));
-        const activeObIds = new Set(state.obrigacoes.filter(o => o.ativa).map(o => o.id));
+        const activeObIds = new Set(
+          state.obrigacoes
+            .filter(o => o.ativa && obrigacaoAplicaNaCompetencia(o, newComp))
+            .map(o => o.id)
+        );
 
         const rows = state.matriz
           .filter(m => activeClientIds.has(m.cliente_id) && activeObIds.has(m.obrigacao_id))
