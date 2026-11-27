@@ -557,8 +557,8 @@
     const DEFAULT_SUPABASE_URL = 'https://sufsfcryoohwqfoucwqh.supabase.co';
     const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
 
-    const LS_URL_KEY = 'https://sufsfcryoohwqfoucwqh.supabase.co';
-    const LS_ANON_KEY = 'sb_publishable_u9L8TDlnGCIdE1kMnockBw_Y1vP_Wt_';
+    const LS_URL_KEY = 'cc_supabase_url';
+    const LS_ANON_KEY = 'cc_supabase_anon_key';
 
     let sb = null;
     let realtimeChannel = null;
@@ -1521,6 +1521,7 @@
                     </tr>
                   ` : filtered.map(c => {
                     const qtdRotinas = state.matriz.filter(m => m.cliente_id === c.id).length;
+                    const driveUrl = normalizeExternalUrl(c.drive_url);
                     return `
                       <tr class="hover:bg-slate-50/70 transition-colors">
                         <td class="px-5 py-3.5">
@@ -1528,32 +1529,31 @@
                           <div class="text-xs text-slate-400">${escapeHtml(c.cnpj || 'Sem CNPJ')} ${c.atividade ? `· ${escapeHtml(c.atividade)}` : ''}</div>
                         </td>
                         <td class="px-5 py-3.5">
-                    ${list.length === 0 ? `<p class="p-6 text-xs text-slate-400 text-center">Nenhuma obrigação cadastrada.</p>` : list.map(ob => {
-                      const per = ob.periodicidade || 'mensal';
-                      const off = ob.mes_vencimento_offset ?? 1;
-                      const perLabel = per === 'trimestral'
-                        ? 'Trimestral'
-                        : (per === 'anual' ? `Anual (${MESES_CURTOS[ob.mes_anual || 12]})` : 'Mensal');
-                      return `
-                        <div class="px-5 py-3.5 flex items-center justify-between gap-2 ${ob.ativa ? '' : 'opacity-50 bg-slate-50'}">
-                          <div>
-                            <p class="text-sm font-medium text-slate-800">${escapeHtml(ob.nome)}</p>
-                            <p class="text-xs text-slate-400">${perLabel} · Dia ${String(ob.dia_vencimento).padStart(2, '0')} (M+${off}) · ${ob.ativa ? 'Ativa' : 'Inativa'}</p>
-                          </div>
-                          <div class="flex items-center gap-1">
-                            <button onclick="toggleObrigacaoAtiva('${ob.id}', ${!ob.ativa})" title="${ob.ativa ? 'Desativar' : 'Ativar'}"
-                              class="px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">
-                              ${ob.ativa ? 'Desativar' : 'Ativar'}
+                          <div class="text-slate-800 font-medium">${escapeHtml(c.socio_nome || '—')}</div>
+                          <div class="text-xs text-slate-400">${escapeHtml(c.socio_whatsapp || 'Sem WhatsApp')}</div>
+                        </td>
+                        <td class="px-5 py-3.5 text-slate-600 text-xs font-medium">${escapeHtml(c.regime)}</td>
+                        <td class="px-5 py-3.5 text-center">
+                          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">${qtdRotinas}</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                          <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${c.ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                            ${c.ativo ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-right">
+                          <div class="inline-flex items-center justify-end gap-1.5">
+                            ${driveUrl ? `
+                              <a href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener noreferrer" title="Abrir pasta no Google Drive"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-semibold hover:bg-blue-100 transition-colors">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                                Drive
+                              </a>
+                            ` : ''}
+                            <button onclick="openClientModal('${c.id}')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer">
+                              Editar / Regras
                             </button>
-                            <button onclick="openObligationModal('${ob.id}')" title="Editar"
-                              class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            </button>
                           </div>
-                        </div>
-                      `;
-                    }).join('')}
-                  </div>
                         </td>
                       </tr>
                     `;
@@ -1598,24 +1598,31 @@
                     <span class="text-xs font-semibold text-slate-500">${list.length} rotinas</span>
                   </div>
                   <div class="divide-y divide-slate-100 flex-1">
-                    ${list.length === 0 ? `<p class="p-6 text-xs text-slate-400 text-center">Nenhuma obrigação cadastrada.</p>` : list.map(ob => `
-                      <div class="px-5 py-3.5 flex items-center justify-between gap-2 ${ob.ativa ? '' : 'opacity-50 bg-slate-50'}">
-                        <div>
-                          <p class="text-sm font-medium text-slate-800">${escapeHtml(ob.nome)}</p>
-                          <p class="text-xs text-slate-400">Vencimento: dia ${String(ob.dia_vencimento).padStart(2, '0')} · ${ob.ativa ? 'Ativa' : 'Inativa'}</p>
+                    ${list.length === 0 ? `<p class="p-6 text-xs text-slate-400 text-center">Nenhuma obrigação cadastrada.</p>` : list.map(ob => {
+                      const per = ob.periodicidade || 'mensal';
+                      const off = ob.mes_vencimento_offset ?? 1;
+                      const perLabel = per === 'trimestral'
+                        ? 'Trimestral'
+                        : (per === 'anual' ? `Anual (${MESES_CURTOS[ob.mes_anual || 12]})` : 'Mensal');
+                      return `
+                        <div class="px-5 py-3.5 flex items-center justify-between gap-2 ${ob.ativa ? '' : 'opacity-50 bg-slate-50'}">
+                          <div>
+                            <p class="text-sm font-medium text-slate-800">${escapeHtml(ob.nome)}</p>
+                            <p class="text-xs text-slate-400">${perLabel} · Dia ${String(ob.dia_vencimento).padStart(2, '0')} (M+${off}) · ${ob.ativa ? 'Ativa' : 'Inativa'}</p>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <button onclick="toggleObrigacaoAtiva('${ob.id}', ${!ob.ativa})" title="${ob.ativa ? 'Desativar' : 'Ativar'}"
+                              class="px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">
+                              ${ob.ativa ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button onclick="openObligationModal('${ob.id}')" title="Editar"
+                              class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                          </div>
                         </div>
-                        <div class="flex items-center gap-1">
-                          <button onclick="toggleObrigacaoAtiva('${ob.id}', ${!ob.ativa})" title="${ob.ativa ? 'Desativar' : 'Ativar'}"
-                            class="px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer">
-                            ${ob.ativa ? 'Desativar' : 'Ativar'}
-                          </button>
-                          <button onclick="openObligationModal('${ob.id}')" title="Editar"
-                            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                          </button>
-                        </div>
-                      </div>
-                    `).join('')}
+                      `;
+                    }).join('')}
                   </div>
                 </div>
               `;
